@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stark CPA</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="toast-container" class="toast-container"></div>
+
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md p-8">
+      <div class="flex items-center justify-center mb-6">
+        <div class="brand-badge large">S</div>
+      </div>
+
+      <h1 class="text-3xl font-black text-center tracking-tight mb-2">Stark CPA</h1>
+      <p class="text-slate-400 text-center mb-8">Painel profissional de gestão</p>
+
+      <div class="space-y-4">
+        <input id="email" type="email" placeholder="Email" class="app-input" />
+        <input id="senha" type="password" placeholder="Senha" class="app-input" />
+        <button type="button" onclick="login()" class="primary-btn w-full">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-screen" class="hidden min-h-screen">
+    <aside class="sidebar">
+      <div>
+        <div class="flex items-center gap-3 mb-10">
+          <div class="brand-badge">S</div>
+          <div>
+            <h2 class="font-black text-lg tracking-tight">Stark CPA</h2>
+            <p id="sidebar-subtitle" class="text-xs text-slate-400">Dashboard</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <button id="nav-overview" class="sidebar-link active-link" onclick="showPage('overview')">Visão Geral</button>
+          <button id="nav-operators" class="sidebar-link hidden" onclick="showPage('operators')">Operadores</button>
+          <button id="nav-goals" class="sidebar-link hidden" onclick="showPage('goals')">Metas</button>
+          <button id="nav-operator-detail" class="sidebar-link hidden" onclick="showPage('operator-detail')">Detalhe do Operador</button>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="user-box">
+          <p class="text-xs text-slate-400">Logado como</p>
+          <p id="usuario-logado" class="font-bold text-sm break-all">-</p>
+          <p id="usuario-tipo" class="text-xs text-blue-400 mt-1">-</p>
+        </div>
+        <button onclick="logout()" class="danger-btn w-full">Sair</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section id="page-overview">
+        <header id="admin-header" class="mb-8 hidden">
+          <h1 class="text-3xl font-black tracking-tight">Painel Administrativo</h1>
+          <p class="text-slate-400 mt-1">Acompanhe equipe, registros e desempenho geral.</p>
+        </header>
+
+        <header id="operator-header" class="mb-8 hidden">
+          <h1 class="text-3xl font-black tracking-tight">Meu Painel</h1>
+          <p class="text-slate-400 mt-1">Acompanhe seus registros, contas e metas.</p>
+        </header>
+
+        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <div class="metric-card"><p class="metric-label">Hoje</p><h3 id="metric-hoje" class="metric-value">R$ 0,00</h3><p id="metric-hoje-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Semana</p><h3 id="metric-semana" class="metric-value">R$ 0,00</h3><p id="metric-semana-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Mês</p><h3 id="metric-mes" class="metric-value">R$ 0,00</h3><p id="metric-mes-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Total</p><h3 id="metric-total" class="metric-value">R$ 0,00</h3><p id="metric-total-count" class="metric-sub">0 registros</p></div>
+        </section>
+
+        <section id="operator-goals" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 hidden">
+          <div class="metric-card">
+            <p class="metric-label">Meta de Contas Hoje</p>
+            <h3 id="goal-hoje" class="metric-value">0 / 0</h3>
+            <p id="goal-hoje-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="goal-hoje-bar" class="progress-fill"></div></div>
+          </div>
+          <div class="metric-card">
+            <p class="metric-label">Meta de Contas Semana</p>
+            <h3 id="goal-semana" class="metric-value">0 / 0</h3>
+            <p id="goal-semana-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="goal-semana-bar" class="progress-fill"></div></div>
+          </div>
+          <div class="metric-card">
+            <p class="metric-label">Meta de Contas Mês</p>
+            <h3 id="goal-mes" class="metric-value">0 / 0</h3>
+            <p id="goal-mes-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="goal-mes-bar" class="progress-fill"></div></div>
+          </div>
+        </section>
+
+        <section class="glass-card p-5 mb-8">
+          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+              <h2 id="control-title" class="text-xl font-black tracking-tight">Controles</h2>
+              <p id="control-subtitle" class="text-slate-400 text-sm">Gerencie filtros e visualização.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <input
+                id="busca-registros"
+                type="text"
+                placeholder="Buscar operador nos registros"
+                class="app-input min-w-[240px] hidden"
+                oninput="applyCurrentFilter()"
+              />
+              <select id="filtroData" class="app-input min-w-[140px]" onchange="applyCurrentFilter()">
+                <option value="hoje">Hoje</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mês</option>
+                <option value="todos">Todos</option>
+              </select>
+              <button id="btn-export-excel" onclick="exportarExcel()" class="secondary-btn hidden">Exportar Excel</button>
+              <button id="btn-open-operator-modal" onclick="openCreateOperatorModal()" class="success-btn hidden">Criar Operador</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6 mb-8">
+          <div class="glass-card p-6 2xl:col-span-2">
+            <div class="mb-5">
+              <h2 id="form-title" class="text-xl font-black tracking-tight">Novo registro</h2>
+              <p id="form-subtitle" class="text-slate-400 text-sm">Lance valores de depósito, saque, BAU e contas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <input id="entrada" type="number" placeholder="Depósito" class="app-input no-spinner" />
+              <input id="ajuste" type="number" placeholder="BAU" class="app-input no-spinner" />
+              <input id="saida" type="number" placeholder="Saque" class="app-input no-spinner" />
+              <input id="qtd-contas" type="number" placeholder="Qtd. contas" class="app-input no-spinner" />
+            </div>
+
+            <div class="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div class="result-preview">
+                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Resultado estimado</p>
+                <h3 id="resultado-previo" class="text-3xl font-black mt-2">R$ 0,00</h3>
+              </div>
+              <button onclick="salvar()" class="primary-btn px-8">Salvar Registro</button>
+            </div>
+          </div>
+
+          <div class="glass-card p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h2 id="ranking-title" class="text-xl font-black tracking-tight">Ranking global</h2>
+              <select id="ranking-period" class="app-input max-w-[120px]" onchange="renderRanking()">
+                <option value="hoje">Hoje</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mês</option>
+                <option value="todos">Total</option>
+              </select>
+            </div>
+            <div id="ranking" class="space-y-3"></div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6">
+          <div class="glass-card p-6 2xl:col-span-2 overflow-x-auto">
+            <div class="mb-5">
+              <h2 id="table-title" class="text-xl font-black tracking-tight">Registros</h2>
+              <p id="table-subtitle" class="text-slate-400 text-sm">Lista de movimentações registradas.</p>
+            </div>
+
+            <table class="w-full min-w-[980px]">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+                  <th class="text-left py-3 pr-3">Operador</th>
+                  <th class="text-left py-3 pr-3">Bruto</th>
+                  <th class="text-left py-3 pr-3">Comissão</th>
+                  <th class="text-left py-3 pr-3">Lucro</th>
+                  <th class="text-left py-3 pr-3">Contas</th>
+                  <th class="text-left py-3 pr-3">Data</th>
+                  <th id="th-acoes" class="text-left py-3 hidden">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela"></tbody>
+            </table>
+          </div>
+
+          <div class="glass-card p-6">
+            <h2 id="chart-title" class="text-xl font-black tracking-tight mb-4">Desempenho</h2>
+            <div class="chart-wrap">
+              <canvas id="graficoCanvas"></canvas>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="page-operators" class="hidden">
+        <header class="mb-8">
+          <h1 class="text-3xl font-black tracking-tight">Operadores</h1>
+          <p class="text-slate-400 mt-1">Gerencie os acessos da equipe.</p>
+        </header>
+
+        <div class="glass-card p-6 overflow-x-auto">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
+            <div>
+              <h2 class="text-xl font-black tracking-tight">Lista de operadores</h2>
+              <p class="text-slate-400 text-sm">Clique no nome para abrir os detalhes.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <input
+                id="busca-operadores"
+                type="text"
+                placeholder="Buscar operador"
+                class="app-input min-w-[240px]"
+                oninput="filtrarOperadoresRender()"
+              />
+              <button onclick="openCreateOperatorModal()" class="success-btn">Novo Operador</button>
+            </div>
+          </div>
+
+          <table class="w-full min-w-[700px]">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+                <th class="text-left py-3 pr-3">Email</th>
+                <th class="text-left py-3 pr-3">Criado em</th>
+                <th class="text-left py-3 pr-3">Tipo</th>
+                <th class="text-left py-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="operators-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="page-goals" class="hidden">
+        <header class="mb-8">
+          <h1 class="text-3xl font-black tracking-tight">Metas dos Operadores</h1>
+          <p class="text-slate-400 mt-1">Defina metas diárias, semanais e mensais por contas.</p>
+        </header>
+
+        <div class="glass-card p-6 overflow-x-auto">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
+            <div>
+              <h2 class="text-xl font-black tracking-tight">Gestão de metas</h2>
+              <p class="text-slate-400 text-sm">Edite e salve as metas sem sair da aba.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <input
+                id="busca-metas"
+                type="text"
+                placeholder="Buscar operador nas metas"
+                class="app-input min-w-[240px]"
+                oninput="renderGoalsTable()"
+              />
+            </div>
+          </div>
+
+          <table class="w-full min-w-[920px]">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+                <th class="text-left py-3 pr-3">Operador</th>
+                <th class="text-left py-3 pr-3">Meta Dia</th>
+                <th class="text-left py-3 pr-3">Meta Semana</th>
+                <th class="text-left py-3 pr-3">Meta Mês</th>
+                <th class="text-left py-3">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="goals-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="page-operator-detail" class="hidden">
+        <header class="mb-8">
+          <button onclick="closeOperatorDetail()" class="ghost-btn mb-4">Voltar</button>
+          <h1 class="text-3xl font-black tracking-tight">Detalhe do Operador</h1>
+          <p id="detail-subtitle" class="text-slate-400 mt-1">Visualização individual do operador.</p>
+        </header>
+
+       <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+  <div class="metric-card">
+    <p class="metric-label">Hoje</p>
+    <h3 id="metric-hoje" class="metric-value">R$ 0,00</h3>
+    <p id="metric-hoje-count" class="metric-sub">0 registros</p>
+  </div>
+
+  <div class="metric-card">
+    <p class="metric-label">Semana</p>
+    <h3 id="metric-semana" class="metric-value">R$ 0,00</h3>
+    <p id="metric-semana-count" class="metric-sub">0 registros</p>
+  </div>
+
+  <div class="metric-card">
+    <p class="metric-label">Mês</p>
+    <h3 id="metric-mes" class="metric-value">R$ 0,00</h3>
+    <p id="metric-mes-count" class="metric-sub">0 registros</p>
+  </div>
+
+  <div class="metric-card">
+    <p class="metric-label">Total</p>
+    <h3 id="metric-total" class="metric-value">R$ 0,00</h3>
+    <p id="metric-total-count" class="metric-sub">0 registros</p>
+  </div>
+</section>
+
+<!-- 🔥 NOVOS CARDS FINANCEIROS (ADMIN) -->
+<section id="admin-finance-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 hidden">
+
+  <div class="metric-card">
+    <p class="metric-label">Bruto Total</p>
+    <h3 id="metric-bruto-total" class="metric-value">R$ 0,00</h3>
+  </div>
+
+  <div class="metric-card">
+    <p class="metric-label">Comissão Paga</p>
+    <h3 id="metric-comissao-total" class="metric-value">R$ 0,00</h3>
+  </div>
+
+  <div class="metric-card">
+    <p class="metric-label">Lucro da Empresa</p>
+    <h3 id="metric-lucro-empresa" class="metric-value">R$ 0,00</h3>
+  </div>
+
+</section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div class="metric-card">
+            <p class="metric-label">Meta Dia / Contas</p>
+            <h3 id="detail-goal-day" class="metric-value">0 / 0</h3>
+            <p id="detail-goal-day-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="detail-goal-day-bar" class="progress-fill"></div></div>
+          </div>
+          <div class="metric-card">
+            <p class="metric-label">Meta Semana / Contas</p>
+            <h3 id="detail-goal-week" class="metric-value">0 / 0</h3>
+            <p id="detail-goal-week-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="detail-goal-week-bar" class="progress-fill"></div></div>
+          </div>
+          <div class="metric-card">
+            <p class="metric-label">Meta Mês / Contas</p>
+            <h3 id="detail-goal-month" class="metric-value">0 / 0</h3>
+            <p id="detail-goal-month-sub" class="metric-sub">0%</p>
+            <div class="progress-track"><div id="detail-goal-month-bar" class="progress-fill"></div></div>
+          </div>
+        </section>
+
+        <section class="glass-card p-5 mb-8">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input id="meta-dia-input" type="number" placeholder="Meta dia" class="app-input no-spinner" />
+            <input id="meta-semana-input" type="number" placeholder="Meta semana" class="app-input no-spinner" />
+            <input id="meta-mes-input" type="number" placeholder="Meta mês" class="app-input no-spinner" />
+            <button onclick="saveOperatorGoals()" class="success-btn">Salvar Metas</button>
+          </div>
+        </section>
+
+        <section class="glass-card p-5 mb-8">
+          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-black tracking-tight">Filtros do operador</h2>
+              <p class="text-slate-400 text-sm">Consulte os ciclos por período.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <select id="detail-filter" class="app-input min-w-[140px]" onchange="renderOperatorDetail()">
+                <option value="todos">Todos</option>
+                <option value="hoje">Hoje</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mês</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6">
+          <div class="glass-card p-6 2xl:col-span-2 overflow-x-auto">
+            <div class="mb-5">
+              <h2 class="text-xl font-black tracking-tight">Ciclos do operador</h2>
+              <p class="text-slate-400 text-sm">Registros individuais filtrados.</p>
+            </div>
+
+            <table class="w-full min-w-[920px]">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+                  <th class="text-left py-3 pr-3">Operador</th>
+                  <th class="text-left py-3 pr-3">Bruto</th>
+                  <th class="text-left py-3 pr-3">Comissão</th>
+                  <th class="text-left py-3 pr-3">Lucro</th>
+                  <th class="text-left py-3 pr-3">Contas</th>
+                  <th class="text-left py-3 pr-3">Data</th>
+                </tr>
+              </thead>
+              <tbody id="detail-table"></tbody>
+            </table>
+          </div>
+
+          <div class="glass-card p-6">
+            <h2 class="text-xl font-black tracking-tight mb-4">Gráfico do operador</h2>
+            <div class="chart-wrap">
+              <canvas id="detailChartCanvas"></canvas>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="operator-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h3 class="text-2xl font-black tracking-tight">Criar operador</h3>
+          <p class="text-slate-400 text-sm mt-1">Cadastre um novo acesso para a equipe.</p>
+        </div>
+        <button onclick="closeCreateOperatorModal()" class="modal-close">×</button>
+      </div>
+
+      <div class="space-y-4">
+        <input id="novo-operador-email" type="email" placeholder="Email do operador" class="app-input" />
+        <input id="novo-operador-senha" type="password" placeholder="Senha do operador" class="app-input" />
+      </div>
+
+      <div class="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
+        <button onclick="closeCreateOperatorModal()" class="ghost-btn">Cancelar</button>
+        <button onclick="createOperatorFromModal()" class="success-btn">Criar operador</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
