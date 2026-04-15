@@ -173,17 +173,7 @@
             </div>
 
             <table class="w-full min-w-[980px]">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-                  <th class="text-left py-3 pr-3">Operador</th>
-                  <th class="text-left py-3 pr-3">Bruto</th>
-                  <th class="text-left py-3 pr-3">Comissão</th>
-                  <th class="text-left py-3 pr-3">Lucro</th>
-                  <th class="text-left py-3 pr-3">Contas</th>
-                  <th class="text-left py-3 pr-3">Data</th>
-                  <th id="th-acoes" class="text-left py-3 hidden">Ações</th>
-                </tr>
-              </thead>
+              <thead id="table-head-main"></thead>
               <tbody id="tabela"></tbody>
             </table>
           </div>
@@ -282,51 +272,12 @@
           <p id="detail-subtitle" class="text-slate-400 mt-1">Visualização individual do operador.</p>
         </header>
 
-       <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-  <div class="metric-card">
-    <p class="metric-label">Hoje</p>
-    <h3 id="metric-hoje" class="metric-value">R$ 0,00</h3>
-    <p id="metric-hoje-count" class="metric-sub">0 registros</p>
-  </div>
-
-  <div class="metric-card">
-    <p class="metric-label">Semana</p>
-    <h3 id="metric-semana" class="metric-value">R$ 0,00</h3>
-    <p id="metric-semana-count" class="metric-sub">0 registros</p>
-  </div>
-
-  <div class="metric-card">
-    <p class="metric-label">Mês</p>
-    <h3 id="metric-mes" class="metric-value">R$ 0,00</h3>
-    <p id="metric-mes-count" class="metric-sub">0 registros</p>
-  </div>
-
-  <div class="metric-card">
-    <p class="metric-label">Total</p>
-    <h3 id="metric-total" class="metric-value">R$ 0,00</h3>
-    <p id="metric-total-count" class="metric-sub">0 registros</p>
-  </div>
-</section>
-
-<!-- 🔥 NOVOS CARDS FINANCEIROS (ADMIN) -->
-<section id="admin-finance-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 hidden">
-
-  <div class="metric-card">
-    <p class="metric-label">Bruto Total</p>
-    <h3 id="metric-bruto-total" class="metric-value">R$ 0,00</h3>
-  </div>
-
-  <div class="metric-card">
-    <p class="metric-label">Comissão Paga</p>
-    <h3 id="metric-comissao-total" class="metric-value">R$ 0,00</h3>
-  </div>
-
-  <div class="metric-card">
-    <p class="metric-label">Lucro da Empresa</p>
-    <h3 id="metric-lucro-empresa" class="metric-value">R$ 0,00</h3>
-  </div>
-
-</section>
+        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <div class="metric-card"><p class="metric-label">Hoje</p><h3 id="detail-hoje" class="metric-value">R$ 0,00</h3><p id="detail-hoje-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Semana</p><h3 id="detail-semana" class="metric-value">R$ 0,00</h3><p id="detail-semana-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Mês</p><h3 id="detail-mes" class="metric-value">R$ 0,00</h3><p id="detail-mes-count" class="metric-sub">0 registros</p></div>
+          <div class="metric-card"><p class="metric-label">Total</p><h3 id="detail-total" class="metric-value">R$ 0,00</h3><p id="detail-total-count" class="metric-sub">0 registros</p></div>
+        </section>
 
         <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div class="metric-card">
@@ -384,7 +335,7 @@
             </div>
 
             <table class="w-full min-w-[920px]">
-             
+              <thead id="table-head-detail"></thead>
               <tbody id="detail-table"></tbody>
             </table>
           </div>
