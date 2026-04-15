@@ -142,15 +142,68 @@ function renderOperatorGoalsOverview() {
   $("operator-goals").classList.remove("hidden");
 }
 
+function renderMainTableHead() {
+  const thead = $("table-head-main");
+  if (!thead) return;
+
+  thead.innerHTML = isAdmin()
+    ? `
+      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+        <th class="text-left py-3 pr-3">Operador</th>
+        <th class="text-left py-3 pr-3">Bruto</th>
+        <th class="text-left py-3 pr-3">Comissão</th>
+        <th class="text-left py-3 pr-3">Lucro</th>
+        <th class="text-left py-3 pr-3">Contas</th>
+        <th class="text-left py-3 pr-3">Data</th>
+        <th class="text-left py-3">Ações</th>
+      </tr>
+    `
+    : `
+      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+        <th class="text-left py-3 pr-3">Operador</th>
+        <th class="text-left py-3 pr-3">Bruto</th>
+        <th class="text-left py-3 pr-3">Comissão</th>
+        <th class="text-left py-3 pr-3">Contas</th>
+        <th class="text-left py-3 pr-3">Data</th>
+        <th class="text-left py-3">Ações</th>
+      </tr>
+    `;
+}
+
+function renderDetailTableHead() {
+  const thead = $("table-head-detail");
+  if (!thead) return;
+
+  thead.innerHTML = isAdmin()
+    ? `
+      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+        <th class="text-left py-3 pr-3">Operador</th>
+        <th class="text-left py-3 pr-3">Bruto</th>
+        <th class="text-left py-3 pr-3">Comissão</th>
+        <th class="text-left py-3 pr-3">Lucro</th>
+        <th class="text-left py-3 pr-3">Contas</th>
+        <th class="text-left py-3 pr-3">Data</th>
+      </tr>
+    `
+    : `
+      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
+        <th class="text-left py-3 pr-3">Operador</th>
+        <th class="text-left py-3 pr-3">Bruto</th>
+        <th class="text-left py-3 pr-3">Comissão</th>
+        <th class="text-left py-3 pr-3">Contas</th>
+        <th class="text-left py-3 pr-3">Data</th>
+      </tr>
+    `;
+}
+
 function applyAdminVisibility() {
   const admin = isAdmin();
- $("admin-finance-cards")?.classList.toggle("hidden", !isAdmin());
+
   $("btn-open-operator-modal")?.classList.toggle("hidden", !admin);
   $("btn-export-excel")?.classList.toggle("hidden", !admin);
   $("nav-operators")?.classList.toggle("hidden", !admin);
   $("nav-goals")?.classList.toggle("hidden", !admin);
   $("nav-operator-detail")?.classList.toggle("hidden", !admin || !state.selectedOperator);
-  $("th-acoes")?.classList.toggle("hidden", !admin);
   $("busca-registros")?.classList.toggle("hidden", !admin);
 
   $("admin-header")?.classList.toggle("hidden", !admin);
@@ -172,6 +225,9 @@ function applyAdminVisibility() {
     : "Lista das suas movimentações.";
   $("chart-title").textContent = admin ? "Desempenho da equipe" : "Meu desempenho";
 
+  renderMainTableHead();
+  renderDetailTableHead();
+
   if (!admin) {
     $("page-operators")?.classList.add("hidden");
     $("page-goals")?.classList.add("hidden");
@@ -191,7 +247,6 @@ function startApp() {
   $("app-screen").classList.remove("hidden");
 
   applyAdminVisibility();
-$("admin-finance-cards")?.classList.toggle("hidden", !isAdmin());
   carregar();
   if (isAdmin()) carregarOperadores();
 }
@@ -532,6 +587,62 @@ async function salvar() {
   showToast("Registro salvo com sucesso.");
 }
 
+async function editar(id) {
+  const atual = state.allDados.find((item) => item.id === id);
+  if (!atual) return;
+
+  if (!isAdmin() && atual.email !== state.user.email) {
+    return showToast("Você não pode editar este ciclo.", "error");
+  }
+
+  const novoBruto = prompt("Novo valor bruto:", String(atual.lucro ?? 0));
+  if (novoBruto === null) return;
+
+  const novaQtdContas = prompt("Nova quantidade de contas:", String(atual.qtd_contas ?? 0));
+  if (novaQtdContas === null) return;
+
+  const lucro = Number(novoBruto);
+  const qtd_contas = Number(novaQtdContas);
+
+  if (Number.isNaN(lucro) || Number.isNaN(qtd_contas)) {
+    return showToast("Digite números válidos.", "error");
+  }
+
+  const { error } = await supabaseClient
+    .from("ciclos")
+    .update({ lucro, qtd_contas })
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    return showToast("Erro ao editar registro.", "error");
+  }
+
+  await carregar();
+  showToast("Registro editado com sucesso.");
+}
+
+async function excluir(id) {
+  const atual = state.allDados.find((item) => item.id === id);
+  if (!atual) return;
+
+  if (!isAdmin() && atual.email !== state.user.email) {
+    return showToast("Você não pode excluir este ciclo.", "error");
+  }
+
+  if (!confirm("Excluir este registro?")) return;
+
+  const { error } = await supabaseClient.from("ciclos").delete().eq("id", id);
+
+  if (error) {
+    console.error(error);
+    return showToast("Erro ao excluir registro.", "error");
+  }
+
+  await carregar();
+  showToast("Registro excluído com sucesso.");
+}
+
 function applyCurrentFilter() {
   const filtro = $("filtroData").value;
   const busca = isAdmin() ? (($("busca-registros")?.value || "").trim().toLowerCase()) : "";
@@ -567,9 +678,8 @@ async function carregar() {
 
   state.allDados = data || [];
   renderMetricasPorPeriodo();
-renderOperatorGoalsOverview();
-renderFinanceCards(); // 🔥 ADICIONADO
-applyCurrentFilter();
+  renderOperatorGoalsOverview();
+  applyCurrentFilter();
 
   if (isAdmin() && state.selectedOperator && state.currentPage === "operator-detail") {
     renderOperatorDetail();
@@ -597,7 +707,7 @@ function renderTabela() {
   const tabela = $("tabela");
 
   if (!state.dados.length) {
-    tabela.innerHTML = `<tr><td colspan="${isAdmin() ? 7 : 6}" class="py-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+    tabela.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
     return;
   }
 
@@ -612,24 +722,37 @@ function renderTabela() {
         ? new Date(item.created_at).toLocaleDateString("pt-BR")
         : "-";
 
+    const acoes = `
+      <td class="py-4">
+        <div class="flex gap-2">
+          <button onclick="editar('${item.id}')" class="table-action edit-btn">Editar</button>
+          <button onclick="excluir('${item.id}')" class="table-action delete-btn">Excluir</button>
+        </div>
+      </td>
+    `;
+
+    if (isAdmin()) {
+      return `
+        <tr class="border-b border-slate-900">
+          <td class="py-4 pr-3 font-semibold">${item.email ?? "-"}</td>
+          <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
+          <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
+          <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
+          <td class="py-4 pr-3">${contas}</td>
+          <td class="py-4 pr-3">${dataTexto}</td>
+          ${acoes}
+        </tr>
+      `;
+    }
+
     return `
       <tr class="border-b border-slate-900">
         <td class="py-4 pr-3 font-semibold">${item.email ?? "-"}</td>
         <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
         <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-        <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
         <td class="py-4 pr-3">${contas}</td>
         <td class="py-4 pr-3">${dataTexto}</td>
-        ${
-          isAdmin()
-            ? `<td class="py-4">
-                <div class="flex gap-2">
-                  <button onclick="editar('${item.id}')" class="table-action edit-btn">Editar</button>
-                  <button onclick="excluir('${item.id}')" class="table-action delete-btn">Excluir</button>
-                </div>
-              </td>`
-            : ``
-        }
+        ${acoes}
       </tr>
     `;
   }).join("");
@@ -739,16 +862,26 @@ function renderOperatorDetail() {
           ? new Date(item.created_at).toLocaleDateString("pt-BR")
           : "-";
 
-      return `
-        <tr class="border-b border-slate-900">
-          <td class="py-4 pr-3 font-semibold">${item.email}</td>
-          <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
-          <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-          <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
-          <td class="py-4 pr-3">${contas}</td>
-          <td class="py-4 pr-3">${dataTexto}</td>
-        </tr>
-      `;
+      return isAdmin()
+        ? `
+          <tr class="border-b border-slate-900">
+            <td class="py-4 pr-3 font-semibold">${item.email}</td>
+            <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
+            <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
+            <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
+            <td class="py-4 pr-3">${contas}</td>
+            <td class="py-4 pr-3">${dataTexto}</td>
+          </tr>
+        `
+        : `
+          <tr class="border-b border-slate-900">
+            <td class="py-4 pr-3 font-semibold">${item.email}</td>
+            <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
+            <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
+            <td class="py-4 pr-3">${contas}</td>
+            <td class="py-4 pr-3">${dataTexto}</td>
+          </tr>
+        `;
     }).join("");
   }
 
@@ -788,42 +921,6 @@ function renderDetailMetric(prefix, list) {
   const total = sumLucro(list);
   $(`detail-${prefix}`).textContent = formatCurrency(total);
   $(`detail-${prefix}-count`).textContent = `${list.length} registro${list.length === 1 ? "" : "s"}`;
-}
-
-async function editar(id) {
-  if (!isAdmin()) return;
-
-  const atual = state.dados.find((item) => item.id === id);
-  const valor = prompt("Novo valor bruto:", atual ? String(atual.lucro ?? 0) : "");
-  if (valor === null) return;
-
-  const numero = Number(valor);
-  if (Number.isNaN(numero)) return showToast("Digite um número válido.", "error");
-
-  const { error } = await supabaseClient.from("ciclos").update({ lucro: numero }).eq("id", id);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao editar registro.", "error");
-  }
-
-  await carregar();
-  showToast("Registro editado com sucesso.");
-}
-
-async function excluir(id) {
-  if (!isAdmin()) return;
-  if (!confirm("Excluir este registro?")) return;
-
-  const { error } = await supabaseClient.from("ciclos").delete().eq("id", id);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao excluir registro.", "error");
-  }
-
-  await carregar();
-  showToast("Registro excluído com sucesso.");
 }
 
 function exportarExcel() {
@@ -893,29 +990,3 @@ window.addEventListener("load", () => {
   ["entrada", "ajuste", "saida"].forEach((id) => $(id)?.addEventListener("input", updatePreview));
   restoreSession();
 });
-
-function renderFinanceCards() {
-  if (!isAdmin()) {
-    $("admin-finance-cards").classList.add("hidden");
-    return;
-  }
-
-  let brutoTotal = 0;
-  let comissaoTotal = 0;
-
-  state.allDados.forEach(item => {
-    const bruto = Number(item.lucro || 0);
-    const comissao = getOperatorResultado(bruto);
-
-    brutoTotal += bruto;
-    comissaoTotal += comissao;
-  });
-
-  const lucroEmpresa = brutoTotal - comissaoTotal;
-
-  $("metric-bruto-total").textContent = formatCurrency(brutoTotal);
-  $("metric-comissao-total").textContent = formatCurrency(comissaoTotal);
-  $("metric-lucro-empresa").textContent = formatCurrency(lucroEmpresa);
-
-  $("admin-finance-cards").classList.remove("hidden");
-}
