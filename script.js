@@ -1,992 +1,1875 @@
-const supabaseClient = supabase.createClient(
-  "https://bcouvsffawvvefnwzzdt.supabase.co",
-  "sb_publishable_uZ2hX4VAJZvBVA0n5BeogA_8OdA9fr2"
-);
+const STORAGE_KEY = "dashboard_financeiro_registros";
+const OPERATORS_STORAGE_KEY = "dashboard_financeiro_operadores";
+const EXPENSES_STORAGE_KEY = "dashboard_financeiro_gastos";
+const SAVINGS_STORAGE_KEY = "dashboard_financeiro_poupanca";
+const GOALS_STORAGE_KEY = "dashboard_financeiro_metas";
+const SETTINGS_STORAGE_KEY = "dashboard_financeiro_configuracoes";
 
-const state = {
-  user: null,
-  allDados: [],
-  dados: [],
-  allOperadores: [],
-  chart: null,
-  detailChart: null,
-  comissao: 0.3,
-  currentPage: "overview",
-  selectedOperator: null
-};
+const menuItems = document.querySelectorAll(".menu-item");
+const pages = document.querySelectorAll(".page");
 
-const $ = (id) => document.getElementById(id);
+const searchInput = document.getElementById("searchInput");
+const periodFilter = document.getElementById("periodFilter");
+const operatorForm = document.getElementById("operatorForm");
+const operatorName = document.getElementById("operatorName");
+const operatorMonth = document.getElementById("operatorMonth");
+const operatorGross = document.getElementById("operatorGross");
+const operatorNet = document.getElementById("operatorNet");
+const operatorValue = document.getElementById("operatorValue");
+const grossValue = document.getElementById("grossValue");
+const grossCount = document.getElementById("grossCount");
+const commissionValue = document.getElementById("commissionValue");
+const profitValue = document.getElementById("profitValue");
+const expensesOverviewValue = document.getElementById("expensesOverviewValue");
+const recordsTableBody = document.getElementById("recordsTableBody");
+const rankingList = document.getElementById("rankingList");
 
-const formatCurrency = (value) =>
-  Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const operatorSearchInput = document.getElementById("operatorSearchInput");
+const operatorMonthFilter = document.getElementById("operatorMonthFilter");
+const operatorsTableBody = document.getElementById("operatorsTableBody");
+const operatorsTotalCount = document.getElementById("operatorsTotalCount");
+const operatorsGrossTotal = document.getElementById("operatorsGrossTotal");
+const operatorsNetTotal = document.getElementById("operatorsNetTotal");
+const operatorsCommissionTotal = document.getElementById("operatorsCommissionTotal");
+const importOperatorsBtn = document.getElementById("importOperatorsBtn");
+const importOperatorsInput = document.getElementById("importOperatorsInput");
 
-const getLocalDateString = (date = new Date()) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-};
+const cyclesPeriodFilter = document.getElementById("cyclesPeriodFilter");
+const cyclesCount = document.getElementById("cyclesCount");
+const cyclesGross = document.getElementById("cyclesGross");
+const cyclesCommission = document.getElementById("cyclesCommission");
+const cyclesProfit = document.getElementById("cyclesProfit");
+const cyclesTableBody = document.getElementById("cyclesTableBody");
 
-const parseDateOnly = (dateStr) => {
-  if (!dateStr) return null;
-  const [y, m, d] = String(dateStr).split("-").map(Number);
-  return y && m && d ? new Date(y, m - 1, d) : null;
-};
+const cycleForm = document.getElementById("cycleForm");
+const cycleId = document.getElementById("cycleId");
+const cycleOperator = document.getElementById("cycleOperator");
+const cycleAccounts = document.getElementById("cycleAccounts");
+const cycleBau = document.getElementById("cycleBau");
+const cycleDeposit = document.getElementById("cycleDeposit");
+const cycleWithdraw = document.getElementById("cycleWithdraw");
+const cycleCommission = document.getElementById("cycleCommission");
+const cycleDate = document.getElementById("cycleDate");
+const cycleSubmitBtn = document.getElementById("cycleSubmitBtn");
+const cancelCycleEditBtn = document.getElementById("cancelCycleEditBtn");
 
-const startOfWeek = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - 6);
-  return d;
-};
+const expenseSearchInput = document.getElementById("expenseSearchInput");
+const expensesPeriodFilter = document.getElementById("expensesPeriodFilter");
+const expensesTotalValue = document.getElementById("expensesTotalValue");
+const expensesCountLabel = document.getElementById("expensesCountLabel");
+const expensesTopCategory = document.getElementById("expensesTopCategory");
+const expensesAverageValue = document.getElementById("expensesAverageValue");
+const expensesNetResult = document.getElementById("expensesNetResult");
+const expensesTableBody = document.getElementById("expensesTableBody");
+const importExpensesBtn = document.getElementById("importExpensesBtn");
+const importExpensesInput = document.getElementById("importExpensesInput");
 
-const startOfMonth = () => new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+const expenseForm = document.getElementById("expenseForm");
+const expenseId = document.getElementById("expenseId");
+const expenseCategory = document.getElementById("expenseCategory");
+const expenseDescription = document.getElementById("expenseDescription");
+const expenseValue = document.getElementById("expenseValue");
+const expenseDate = document.getElementById("expenseDate");
+const expenseSubmitBtn = document.getElementById("expenseSubmitBtn");
+const cancelExpenseEditBtn = document.getElementById("cancelExpenseEditBtn");
 
-function showToast(message, type = "success") {
+const savingsSearchInput = document.getElementById("savingsSearchInput");
+const savingsTypeFilter = document.getElementById("savingsTypeFilter");
+const savingsBalanceValue = document.getElementById("savingsBalanceValue");
+const savingsDepositsValue = document.getElementById("savingsDepositsValue");
+const savingsWithdrawalsValue = document.getElementById("savingsWithdrawalsValue");
+const savingsCountValue = document.getElementById("savingsCountValue");
+const savingsTableBody = document.getElementById("savingsTableBody");
+
+const savingsForm = document.getElementById("savingsForm");
+const savingsId = document.getElementById("savingsId");
+const savingsType = document.getElementById("savingsType");
+const savingsValue = document.getElementById("savingsValue");
+const savingsDescription = document.getElementById("savingsDescription");
+const savingsDate = document.getElementById("savingsDate");
+const savingsSubmitBtn = document.getElementById("savingsSubmitBtn");
+const cancelSavingsEditBtn = document.getElementById("cancelSavingsEditBtn");
+
+const goalsForm = document.getElementById("goalsForm");
+const dailyGoalInput = document.getElementById("dailyGoalInput");
+const weeklyGoalInput = document.getElementById("weeklyGoalInput");
+const monthlyGoalInput = document.getElementById("monthlyGoalInput");
+
+const fullRankingList = document.getElementById("fullRankingList");
+
+const settingsForm = document.getElementById("settingsForm");
+const themeSelect = document.getElementById("themeSelect");
+const fontSizeSelect = document.getElementById("fontSizeSelect");
+const paletteSelect = document.getElementById("paletteSelect");
+const resetSettingsBtn = document.getElementById("resetSettingsBtn");
+
+let records = loadRecords();
+let operators = hydrateOperators(loadOperators());
+let expenses = loadExpenses();
+let savings = loadSavings();
+let goals = loadGoals();
+let settings = loadSettings();
+let performanceChart = null;
+let expensePicker = null;
+let cyclePicker = null;
+let savingsPicker = null;
+
+/* =========================
+   TOASTS MODERNOS
+========================= */
+
+function getToastContainer() {
+  let container = document.querySelector(".toast-container");
+
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  return container;
+}
+
+function showToast(title, message = "", type = "info", duration = 2600) {
+  const container = getToastContainer();
+
+  const iconMap = {
+    success: "✓",
+    error: "!",
+    warning: "!",
+    info: "i",
+  };
+
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  $("toast-container").appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  toast.innerHTML = `
+    <div class="toast-icon">${iconMap[type] || "i"}</div>
+    <div class="toast-content">
+      <div class="toast-title">${title}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("toast-hide");
+    setTimeout(() => toast.remove(), 220);
+  }, duration);
 }
 
-function saveSession() {
-  if (state.user) {
-    localStorage.setItem("stark_cpa_session", JSON.stringify({ email: state.user.email }));
-  }
-}
+const confirmModal = document.getElementById("confirmModal");
+const confirmModalTitle = document.getElementById("confirmModalTitle");
+const confirmModalMessage = document.getElementById("confirmModalMessage");
+const confirmModalCancel = document.getElementById("confirmModalCancel");
+const confirmModalConfirm = document.getElementById("confirmModalConfirm");
 
-function clearSession() {
-  localStorage.removeItem("stark_cpa_session");
-}
+/* =========================
+   STORAGE
+========================= */
 
-function isAdmin() {
-  return state.user?.email === "admin@email.com";
-}
-
-function getOperatorResultado(bruto) {
-  const valor = Number(bruto || 0);
-  return valor >= 0 ? valor * state.comissao : valor;
-}
-
-function getFilteredListByPeriod(list, filtro) {
-  const hojeStr = getLocalDateString();
-  const semanaInicio = startOfWeek();
-  const mesInicio = startOfMonth();
-  const agora = new Date();
-
-  return list.filter((item) => {
-    if (filtro === "hoje") return item.data_registro === hojeStr;
-
-    const data = item.data_registro
-      ? parseDateOnly(item.data_registro)
-      : item.created_at
-        ? new Date(item.created_at)
-        : null;
-
-    if (!data || Number.isNaN(data.getTime())) return false;
-
-    data.setHours(0, 0, 0, 0);
-
-    if (filtro === "semana") return data >= semanaInicio && data <= agora;
-    if (filtro === "mes") return data >= mesInicio && data <= agora;
-
-    return true;
-  });
-}
-
-function sumLucro(list) {
-  return list.reduce((acc, item) => acc + Number(item.lucro || 0), 0);
-}
-
-function sumContas(list) {
-  return list.reduce((acc, item) => acc + Number(item.qtd_contas || 0), 0);
-}
-
-function updatePreview() {
-  const entrada = Number($("entrada")?.value) || 0;
-  const ajuste = Number($("ajuste")?.value) || 0;
-  const saida = Number($("saida")?.value) || 0;
-  const bruto = saida + ajuste - entrada;
-
-  const el = $("resultado-previo");
-  el.textContent = formatCurrency(bruto);
-  el.className = `text-3xl font-black mt-2 ${bruto >= 0 ? "positive" : "negative"}`;
-}
-
-function setGoalCard(prefix, realizado, meta) {
-  const percent = meta > 0 ? Math.min((realizado / meta) * 100, 100) : 0;
-  $(`goal-${prefix}`).textContent = `${realizado} / ${meta}`;
-  $(`goal-${prefix}-sub`).textContent = `${percent.toFixed(0)}%`;
-  $(`goal-${prefix}-bar`).style.width = `${percent}%`;
-}
-
-function setDetailGoalCard(prefix, realizado, meta) {
-  const percent = meta > 0 ? Math.min((realizado / meta) * 100, 100) : 0;
-  $(`detail-goal-${prefix}`).textContent = `${realizado} / ${meta}`;
-  $(`detail-goal-${prefix}-sub`).textContent = `${percent.toFixed(0)}%`;
-  $(`detail-goal-${prefix}-bar`).style.width = `${percent}%`;
-}
-
-function renderOperatorGoalsOverview() {
-  if (isAdmin()) {
-    $("operator-goals").classList.add("hidden");
-    return;
-  }
-
-  const mine = state.allDados.filter((item) => item.email === state.user.email);
-  setGoalCard("hoje", sumContas(getFilteredListByPeriod(mine, "hoje")), Number(state.user.meta_dia_contas || 0));
-  setGoalCard("semana", sumContas(getFilteredListByPeriod(mine, "semana")), Number(state.user.meta_semana_contas || 0));
-  setGoalCard("mes", sumContas(getFilteredListByPeriod(mine, "mes")), Number(state.user.meta_mes_contas || 0));
-
-  $("operator-goals").classList.remove("hidden");
-}
-
-function renderMainTableHead() {
-  const thead = $("table-head-main");
-  if (!thead) return;
-
-  thead.innerHTML = isAdmin()
-    ? `
-      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-        <th class="text-left py-3 pr-3">Operador</th>
-        <th class="text-left py-3 pr-3">Bruto</th>
-        <th class="text-left py-3 pr-3">Comissão</th>
-        <th class="text-left py-3 pr-3">Lucro</th>
-        <th class="text-left py-3 pr-3">Contas</th>
-        <th class="text-left py-3 pr-3">Data</th>
-        <th class="text-left py-3">Ações</th>
-      </tr>
-    `
-    : `
-      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-        <th class="text-left py-3 pr-3">Operador</th>
-        <th class="text-left py-3 pr-3">Bruto</th>
-        <th class="text-left py-3 pr-3">Comissão</th>
-        <th class="text-left py-3 pr-3">Contas</th>
-        <th class="text-left py-3 pr-3">Data</th>
-        <th class="text-left py-3">Ações</th>
-      </tr>
-    `;
-}
-
-function renderDetailTableHead() {
-  const thead = $("table-head-detail");
-  if (!thead) return;
-
-  thead.innerHTML = isAdmin()
-    ? `
-      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-        <th class="text-left py-3 pr-3">Operador</th>
-        <th class="text-left py-3 pr-3">Bruto</th>
-        <th class="text-left py-3 pr-3">Comissão</th>
-        <th class="text-left py-3 pr-3">Lucro</th>
-        <th class="text-left py-3 pr-3">Contas</th>
-        <th class="text-left py-3 pr-3">Data</th>
-      </tr>
-    `
-    : `
-      <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-        <th class="text-left py-3 pr-3">Operador</th>
-        <th class="text-left py-3 pr-3">Bruto</th>
-        <th class="text-left py-3 pr-3">Comissão</th>
-        <th class="text-left py-3 pr-3">Contas</th>
-        <th class="text-left py-3 pr-3">Data</th>
-      </tr>
-    `;
-}
-
-function applyAdminVisibility() {
-  const admin = isAdmin();
-
-  $("btn-open-operator-modal")?.classList.toggle("hidden", !admin);
-  $("btn-export-excel")?.classList.toggle("hidden", !admin);
-  $("nav-operators")?.classList.toggle("hidden", !admin);
-  $("nav-goals")?.classList.toggle("hidden", !admin);
-  $("nav-operator-detail")?.classList.toggle("hidden", !admin || !state.selectedOperator);
-  $("busca-registros")?.classList.toggle("hidden", !admin);
-
-  $("admin-header")?.classList.toggle("hidden", !admin);
-  $("operator-header")?.classList.toggle("hidden", admin);
-
-  $("sidebar-subtitle").textContent = admin ? "Admin Dashboard" : "Painel do Operador";
-  $("control-title").textContent = admin ? "Controles Administrativos" : "Meus Controles";
-  $("control-subtitle").textContent = admin
-    ? "Gerencie filtros, exportação e equipe."
-    : "Filtre seus registros e acompanhe seu desempenho.";
-  $("form-title").textContent = admin ? "Novo registro" : "Meu novo registro";
-  $("form-subtitle").textContent = admin
-    ? "Lance valores de depósito, saque, BAU e contas."
-    : "Registre sua movimentação e suas contas do dia.";
-  $("ranking-title").textContent = "Ranking global";
-  $("table-title").textContent = admin ? "Registros gerais" : "Meus registros";
-  $("table-subtitle").textContent = admin
-    ? "Lista de movimentações registradas."
-    : "Lista das suas movimentações.";
-  $("chart-title").textContent = admin ? "Desempenho da equipe" : "Meu desempenho";
-
-  renderMainTableHead();
-  renderDetailTableHead();
-
-  if (!admin) {
-    $("page-operators")?.classList.add("hidden");
-    $("page-goals")?.classList.add("hidden");
-    $("page-operator-detail")?.classList.add("hidden");
-    state.selectedOperator = null;
-    $("operator-goals").classList.remove("hidden");
-    if (state.currentPage !== "overview") showPage("overview");
-  } else {
-    $("operator-goals").classList.add("hidden");
-  }
-}
-
-function startApp() {
-  $("usuario-logado").textContent = state.user.email;
-  $("usuario-tipo").textContent = isAdmin() ? "Administrador" : "Operador";
-  $("login-screen").classList.add("hidden");
-  $("app-screen").classList.remove("hidden");
-
-  applyAdminVisibility();
-  carregar();
-  if (isAdmin()) carregarOperadores();
-}
-
-async function restoreSession() {
-  const saved = localStorage.getItem("stark_cpa_session");
-  if (!saved) return;
-
+function loadRecords() {
   try {
-    const { email } = JSON.parse(saved);
-    if (!email) return;
-
-    const { data, error } = await supabaseClient
-      .from("operadores")
-      .select("*")
-      .eq("email", email)
-      .single();
-
-    if (error || !data) return clearSession();
-
-    state.user = data;
-    startApp();
-    showToast("Sessão restaurada.", "info");
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
   } catch {
-    clearSession();
+    return [];
   }
 }
 
-async function login() {
-  const email = $("email").value.trim();
-  const senha = $("senha").value.trim();
-
-  if (!email || !senha) return showToast("Preencha email e senha.", "error");
-
-  const { data, error } = await supabaseClient
-    .from("operadores")
-    .select("*")
-    .eq("email", email)
-    .eq("senha", senha)
-    .single();
-
-  if (error || !data) {
-    console.error(error);
-    return showToast("Login inválido.", "error");
+function loadOperators() {
+  try {
+    const saved = localStorage.getItem(OPERATORS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
   }
-
-  state.user = data;
-  saveSession();
-  startApp();
-  showToast("Login realizado com sucesso.");
 }
 
-function logout() {
-  clearSession();
-  location.reload();
+function loadExpenses() {
+  try {
+    const saved = localStorage.getItem(EXPENSES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
 }
 
-function showPage(page) {
-  if ((page === "operators" || page === "goals" || page === "operator-detail") && !isAdmin()) return;
-  if (page === "operator-detail" && !state.selectedOperator) return;
-
-  state.currentPage = page;
-
-  $("page-overview").classList.toggle("hidden", page !== "overview");
-  $("page-operators").classList.toggle("hidden", page !== "operators");
-  $("page-goals").classList.toggle("hidden", page !== "goals");
-  $("page-operator-detail").classList.toggle("hidden", page !== "operator-detail");
-
-  $("nav-overview").classList.toggle("active-link", page === "overview");
-  $("nav-operators").classList.toggle("active-link", page === "operators");
-  $("nav-goals").classList.toggle("active-link", page === "goals");
-  $("nav-operator-detail").classList.toggle("active-link", page === "operator-detail");
-
-  if (page === "operators" && isAdmin()) carregarOperadores();
-  if (page === "goals" && isAdmin()) renderGoalsTable();
-  if (page === "operator-detail" && isAdmin()) renderOperatorDetail();
+function loadSavings() {
+  try {
+    const saved = localStorage.getItem(SAVINGS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
 }
 
-function openCreateOperatorModal() {
-  if (!isAdmin()) return;
-  $("novo-operador-email").value = "";
-  $("novo-operador-senha").value = "";
-  $("operator-modal").classList.remove("hidden");
+function loadGoals() {
+  try {
+    const saved = localStorage.getItem(GOALS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : { daily: 0, weekly: 0, monthly: 0 };
+  } catch {
+    return { daily: 0, weekly: 0, monthly: 0 };
+  }
 }
 
-function closeCreateOperatorModal() {
-  $("operator-modal").classList.add("hidden");
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    return saved
+      ? JSON.parse(saved)
+      : { theme: "dark", fontSize: "medium", palette: "blue" };
+  } catch {
+    return { theme: "dark", fontSize: "medium", palette: "blue" };
+  }
 }
 
-async function createOperatorFromModal() {
-  if (!isAdmin()) return;
+function saveRecords() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
 
-  const email = $("novo-operador-email").value.trim();
-  const senha = $("novo-operador-senha").value.trim();
-  if (!email || !senha) return showToast("Preencha email e senha do operador.", "error");
+function saveOperators() {
+  localStorage.setItem(OPERATORS_STORAGE_KEY, JSON.stringify(operators));
+}
 
-  const { error } = await supabaseClient.from("operadores").insert({
-    email,
-    senha,
-    created_at: new Date().toISOString(),
-    meta_dia_contas: 0,
-    meta_semana_contas: 0,
-    meta_mes_contas: 0
+function saveExpenses() {
+  localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(expenses));
+}
+
+function saveSavings() {
+  localStorage.setItem(SAVINGS_STORAGE_KEY, JSON.stringify(savings));
+}
+
+function saveGoals() {
+  localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+}
+
+/* =========================
+   HELPERS
+========================= */
+
+function hydrateOperators(list) {
+  return (Array.isArray(list) ? list : []).map((item) => ({
+    id: item.id || crypto.randomUUID(),
+    name: String(item.name || "").trim(),
+    month: String(item.month || "").trim(),
+    gross: Number(item.gross || 0),
+    net: Number(item.net || 0),
+    operatorValue: Number(item.operatorValue || 0),
+    createdAt: item.createdAt || new Date().toISOString(),
+  }));
+}
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
   });
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao criar operador.", "error");
-  }
-
-  closeCreateOperatorModal();
-  await carregarOperadores();
-  showToast("Operador criado com sucesso.");
 }
 
-async function carregarOperadores() {
-  const { data, error } = await supabaseClient
-    .from("operadores")
-    .select("*")
-    .order("created_at", { ascending: false });
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Data inválida";
 
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao carregar operadores.", "error");
-  }
-
-  state.allOperadores = data || [];
-  filtrarOperadoresRender();
-  renderGoalsTable();
-}
-
-function openOperatorDetail(email) {
-  if (!isAdmin()) return;
-  state.selectedOperator = email;
-  $("detail-subtitle").textContent = `Visualização individual de ${email}`;
-  $("nav-operator-detail").classList.remove("hidden");
-  showPage("operator-detail");
-}
-
-function closeOperatorDetail() {
-  state.selectedOperator = null;
-  $("nav-operator-detail").classList.add("hidden");
-  if (state.detailChart) {
-    state.detailChart.destroy();
-    state.detailChart = null;
-  }
-  showPage("operators");
-}
-
-function filtrarOperadoresRender() {
-  const tbody = $("operators-table");
-  if (!tbody || !isAdmin()) return;
-
-  const busca = ($("busca-operadores")?.value || "").trim().toLowerCase();
-  const lista = busca
-    ? state.allOperadores.filter((op) => String(op.email || "").toLowerCase().includes(busca))
-    : state.allOperadores;
-
-  if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">Nenhum operador encontrado.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = lista.map((op) => {
-    const protegido = op.email === "admin@email.com";
-    return `
-      <tr class="border-b border-slate-900">
-        <td class="py-4 pr-3 font-semibold">
-          <button class="operator-link" onclick="openOperatorDetail('${op.email}')">${op.email}</button>
-        </td>
-        <td class="py-4 pr-3">${op.created_at ? new Date(op.created_at).toLocaleDateString("pt-BR") : "-"}</td>
-        <td class="py-4 pr-3">${protegido ? "Administrador" : "Operador"}</td>
-        <td class="py-4">
-          ${
-            protegido
-              ? `<span class="text-slate-500 text-sm">Protegido</span>`
-              : `<button onclick="removerOperador('${op.id}', '${op.email}')" class="table-action delete-btn">Remover</button>`
-          }
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function safeId(value) {
-  return String(value).replace(/[^a-zA-Z0-9_-]/g, "_");
-}
-
-function renderGoalsTable() {
-  const tbody = $("goals-table");
-  if (!tbody || !isAdmin()) return;
-
-  const busca = ($("busca-metas")?.value || "").trim().toLowerCase();
-  const lista = busca
-    ? state.allOperadores.filter((op) => String(op.email || "").toLowerCase().includes(busca))
-    : state.allOperadores;
-
-  const operadores = lista.filter((op) => op.email !== "admin@email.com");
-
-  if (!operadores.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">Nenhum operador encontrado.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = operadores.map((op) => `
-    <tr class="border-b border-slate-900">
-      <td class="py-4 pr-3 font-semibold">${op.email}</td>
-      <td class="py-4 pr-3"><input id="goal-day-${safeId(op.email)}" type="number" class="app-input no-spinner" value="${Number(op.meta_dia_contas || 0)}" /></td>
-      <td class="py-4 pr-3"><input id="goal-week-${safeId(op.email)}" type="number" class="app-input no-spinner" value="${Number(op.meta_semana_contas || 0)}" /></td>
-      <td class="py-4 pr-3"><input id="goal-month-${safeId(op.email)}" type="number" class="app-input no-spinner" value="${Number(op.meta_mes_contas || 0)}" /></td>
-      <td class="py-4"><button class="success-btn" onclick="saveGoalsFromTable('${op.email}')">Salvar</button></td>
-    </tr>
-  `).join("");
-}
-
-async function saveGoalsFromTable(email) {
-  if (!isAdmin()) return;
-
-  const id = safeId(email);
-  const metaDia = Number($(`goal-day-${id}`).value) || 0;
-  const metaSemana = Number($(`goal-week-${id}`).value) || 0;
-  const metaMes = Number($(`goal-month-${id}`).value) || 0;
-
-  const { error } = await supabaseClient
-    .from("operadores")
-    .update({
-      meta_dia_contas: metaDia,
-      meta_semana_contas: metaSemana,
-      meta_mes_contas: metaMes
+  return (
+    date.toLocaleDateString("pt-BR") +
+    " " +
+    date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
     })
-    .eq("email", email);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao salvar metas.", "error");
-  }
-
-  const op = state.allOperadores.find((item) => item.email === email);
-  if (op) {
-    op.meta_dia_contas = metaDia;
-    op.meta_semana_contas = metaSemana;
-    op.meta_mes_contas = metaMes;
-  }
-
-  if (state.selectedOperator === email && state.currentPage === "operator-detail") {
-    renderOperatorDetail();
-  }
-
-  if (state.user.email === email) {
-    state.user.meta_dia_contas = metaDia;
-    state.user.meta_semana_contas = metaSemana;
-    state.user.meta_mes_contas = metaMes;
-    renderOperatorGoalsOverview();
-  }
-
-  showToast("Metas salvas com sucesso.");
+  );
 }
 
-async function removerOperador(id, email) {
-  if (!isAdmin()) return;
-  if (!confirm(`Remover o operador ${email}?`)) return;
-
-  const { error } = await supabaseClient.from("operadores").delete().eq("id", id);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao remover operador.", "error");
-  }
-
-  await carregarOperadores();
-  showToast("Operador removido com sucesso.");
+function formatDateOnly(dateString) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Data inválida";
+  return date.toLocaleDateString("pt-BR");
 }
 
-async function saveOperatorGoals() {
-  if (!isAdmin() || !state.selectedOperator) return;
+function toDateInputValue(dateString) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
 
-  const metaDia = Number($("meta-dia-input").value) || 0;
-  const metaSemana = Number($("meta-semana-input").value) || 0;
-  const metaMes = Number($("meta-mes-input").value) || 0;
-
-  const { error } = await supabaseClient
-    .from("operadores")
-    .update({
-      meta_dia_contas: metaDia,
-      meta_semana_contas: metaSemana,
-      meta_mes_contas: metaMes
-    })
-    .eq("email", state.selectedOperator);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao salvar metas.", "error");
-  }
-
-  const op = state.allOperadores.find((item) => item.email === state.selectedOperator);
-  if (op) {
-    op.meta_dia_contas = metaDia;
-    op.meta_semana_contas = metaSemana;
-    op.meta_mes_contas = metaMes;
-  }
-
-  if (state.user.email === state.selectedOperator) {
-    state.user.meta_dia_contas = metaDia;
-    state.user.meta_semana_contas = metaSemana;
-    state.user.meta_mes_contas = metaMes;
-  }
-
-  renderGoalsTable();
-  renderOperatorDetail();
-  showToast("Metas salvas com sucesso.");
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 }
 
-async function salvar() {
-  if (!state.user) return;
+function toFlatpickrDateTime(dateString) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
 
-  const entrada = Number($("entrada").value) || 0;
-  const ajuste = Number($("ajuste").value) || 0;
-  const saida = Number($("saida").value) || 0;
-  const qtdContas = Number($("qtd-contas").value) || 0;
-  const agora = new Date();
-
-  const { error } = await supabaseClient.from("ciclos").insert({
-    email: state.user.email,
-    lucro: saida + ajuste - entrada,
-    qtd_contas: qtdContas,
-    created_at: agora.toISOString(),
-    data_registro: getLocalDateString(agora)
-  });
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao salvar registro.", "error");
-  }
-
-  ["entrada", "ajuste", "saida", "qtd-contas"].forEach((id) => ($(`${id}`).value = ""));
-  updatePreview();
-  await carregar();
-  showToast("Registro salvo com sucesso.");
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-async function editar(id) {
-  const atual = state.allDados.find((item) => item.id === id);
-  if (!atual) return;
+function parseCycleDate(value) {
+  if (!value) return null;
 
-  if (!isAdmin() && atual.email !== state.user.email) {
-    return showToast("Você não pode editar este ciclo.", "error");
+  const text = String(value).trim();
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
+    const [day, month, year] = text.split("/");
+    const date = new Date(`${year}-${month}-${day}T00:00:00`);
+    return isNaN(date.getTime()) ? null : date;
   }
 
-  const novoBruto = prompt("Novo valor bruto:", String(atual.lucro ?? 0));
-  if (novoBruto === null) return;
-
-  const novaQtdContas = prompt("Nova quantidade de contas:", String(atual.qtd_contas ?? 0));
-  if (novaQtdContas === null) return;
-
-  const lucro = Number(novoBruto);
-  const qtd_contas = Number(novaQtdContas);
-
-  if (Number.isNaN(lucro) || Number.isNaN(qtd_contas)) {
-    return showToast("Digite números válidos.", "error");
+  if (/^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}$/.test(text)) {
+    const [datePart, timePart] = text.split(" ");
+    const [day, month, year] = datePart.split("/");
+    const date = new Date(`${year}-${month}-${day}T${timePart}:00`);
+    return isNaN(date.getTime()) ? null : date;
   }
 
-  const { error } = await supabaseClient
-    .from("ciclos")
-    .update({ lucro, qtd_contas })
-    .eq("id", id);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao editar registro.", "error");
-  }
-
-  await carregar();
-  showToast("Registro editado com sucesso.");
+  const date = new Date(text);
+  return isNaN(date.getTime()) ? null : date;
 }
 
-async function excluir(id) {
-  const atual = state.allDados.find((item) => item.id === id);
-  if (!atual) return;
+function parseFlexibleNumber(value) {
+  if (typeof value === "number") return value;
+  if (value === null || value === undefined) return 0;
 
-  if (!isAdmin() && atual.email !== state.user.email) {
-    return showToast("Você não pode excluir este ciclo.", "error");
+  let text = String(value).trim();
+  if (!text) return 0;
+
+  text = text.replace(/R\$/gi, "").replace(/\s/g, "");
+
+  const hasComma = text.includes(",");
+  const hasDot = text.includes(".");
+
+  if (hasComma && hasDot) {
+    text = text.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    text = text.replace(",", ".");
   }
 
-  if (!confirm("Excluir este registro?")) return;
-
-  const { error } = await supabaseClient.from("ciclos").delete().eq("id", id);
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao excluir registro.", "error");
-  }
-
-  await carregar();
-  showToast("Registro excluído com sucesso.");
+  const number = Number(text);
+  return Number.isFinite(number) ? number : 0;
 }
 
-function applyCurrentFilter() {
-  const filtro = $("filtroData").value;
-  const busca = isAdmin() ? (($("busca-registros")?.value || "").trim().toLowerCase()) : "";
+function calculateCycleProfit(record) {
+  const deposit = Number(record.deposit || 0);
+  const bau = Number(record.bau || 0);
+  const withdraw = Number(record.withdraw || 0);
+  return deposit + bau - withdraw;
+}
 
-  let listaBase = isAdmin()
-    ? state.allDados
-    : state.allDados.filter((item) => item.email === state.user.email);
+function calculateCycleNetProfit(record) {
+  const grossProfit = calculateCycleProfit(record);
+  const commission = Number(record.commission || 0);
+  return grossProfit - commission;
+}
 
-  let lista = getFilteredListByPeriod(listaBase, filtro);
+function calculateUnifiedProfit(record) {
+  if (record.source === "operator") {
+    return Number(record.profit || 0);
+  }
 
-  if (busca) {
-    lista = lista.filter((item) =>
-      String(item.email || "").toLowerCase().includes(busca)
+  return calculateCycleNetProfit(record);
+}
+
+function calculateUnifiedGross(record) {
+  if (record.source === "operator") return Number(record.gross || 0);
+  return Number(record.withdraw || 0) + Number(record.bau || 0);
+}
+
+function calculateUnifiedCommission(record) {
+  return Number(record.commission || 0);
+}
+
+function checkPeriod(dateString, period) {
+  if (period === "todos") return true;
+
+  const recordDate = new Date(dateString);
+  const now = new Date();
+
+  if (isNaN(recordDate.getTime())) return false;
+
+  if (period === "hoje") {
+    return (
+      recordDate.getDate() === now.getDate() &&
+      recordDate.getMonth() === now.getMonth() &&
+      recordDate.getFullYear() === now.getFullYear()
     );
   }
 
-  state.dados = lista;
-  renderTabela();
-  renderRanking();
-  renderGrafico();
-}
-
-async function carregar() {
-  const { data, error } = await supabaseClient
-    .from("ciclos")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error(error);
-    return showToast("Erro ao carregar registros.", "error");
+  if (period === "semana") {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    return recordDate >= startOfWeek;
   }
 
-  state.allDados = data || [];
-  renderMetricasPorPeriodo();
-  renderOperatorGoalsOverview();
-  applyCurrentFilter();
+  if (period === "mes") {
+    return (
+      recordDate.getMonth() === now.getMonth() &&
+      recordDate.getFullYear() === now.getFullYear()
+    );
+  }
 
-  if (isAdmin() && state.selectedOperator && state.currentPage === "operator-detail") {
-    renderOperatorDetail();
+  return true;
+}
+
+/* =========================
+   OVERVIEW
+========================= */
+
+function operatorToOverviewRecord(operator) {
+  return {
+    id: `operator-${operator.id}`,
+    source: "operator",
+    operator: operator.name || "—",
+    gross: Number(operator.gross || 0),
+    commission: Number(operator.operatorValue || 0),
+    profit: Number(operator.net || 0),
+    accounts: 0,
+    createdAt: operator.createdAt || new Date().toISOString(),
+  };
+}
+
+function cycleToOverviewRecord(cycle) {
+  return {
+    id: cycle.id,
+    source: "cycle",
+    operator: cycle.operator || "—",
+    deposit: Number(cycle.deposit || 0),
+    bau: Number(cycle.bau || 0),
+    withdraw: Number(cycle.withdraw || 0),
+    commission: Number(cycle.commission || 0),
+    accounts: Number(cycle.accounts || 0),
+    createdAt: cycle.createdAt || new Date().toISOString(),
+  };
+}
+
+function getOverviewBaseRecords() {
+  return [
+    ...operators.map(operatorToOverviewRecord),
+    ...records.map(cycleToOverviewRecord),
+  ];
+}
+
+function getFilteredRecords() {
+  const search = searchInput.value.trim().toLowerCase();
+  const period = periodFilter.value;
+
+  return getOverviewBaseRecords().filter((record) => {
+    const matchesSearch = (record.operator || "").toLowerCase().includes(search);
+    const matchesPeriod = checkPeriod(record.createdAt, period);
+    return matchesSearch && matchesPeriod;
+  });
+}
+
+function renderSummary() {
+  const filtered = getFilteredRecords();
+
+  const totalGross = filtered.reduce((sum, record) => sum + calculateUnifiedGross(record), 0);
+  const totalCommission = filtered.reduce((sum, record) => sum + calculateUnifiedCommission(record), 0);
+  const totalProfitBeforeExpenses = filtered.reduce((sum, record) => sum + calculateUnifiedProfit(record), 0);
+  const periodExpenses = getTotalExpensesForPeriod(periodFilter.value);
+  const totalProfit = totalProfitBeforeExpenses - periodExpenses;
+
+  if (grossValue) grossValue.textContent = formatCurrency(totalGross);
+  if (grossCount) grossCount.textContent = `${filtered.length} registro(s)`;
+  if (commissionValue) commissionValue.textContent = formatCurrency(totalCommission);
+  if (expensesOverviewValue) expensesOverviewValue.textContent = formatCurrency(periodExpenses);
+  if (profitValue) {
+    profitValue.textContent = formatCurrency(totalProfit);
+    profitValue.style.color = totalProfit >= 0 ? "#22c55e" : "#ef4444";
   }
 }
 
-function renderMetricCard(prefix, list) {
-  const total = sumLucro(list);
-  $(`metric-${prefix}`).textContent = formatCurrency(total);
-  $(`metric-${prefix}-count`).textContent = `${list.length} registro${list.length === 1 ? "" : "s"}`;
-}
+function renderTable() {
+  const filtered = getFilteredRecords();
 
-function renderMetricasPorPeriodo() {
-  const baseList = isAdmin()
-    ? state.allDados
-    : state.allDados.filter((item) => item.email === state.user.email);
+  if (!recordsTableBody) return;
 
-  renderMetricCard("hoje", getFilteredListByPeriod(baseList, "hoje"));
-  renderMetricCard("semana", getFilteredListByPeriod(baseList, "semana"));
-  renderMetricCard("mes", getFilteredListByPeriod(baseList, "mes"));
-  renderMetricCard("total", getFilteredListByPeriod(baseList, "todos"));
-}
-
-function renderTabela() {
-  const tabela = $("tabela");
-
-  if (!state.dados.length) {
-    tabela.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+  if (!filtered.length) {
+    recordsTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state">Nenhum registro encontrado.</td>
+      </tr>
+    `;
     return;
   }
 
-  tabela.innerHTML = state.dados.map((item) => {
-    const bruto = Number(item.lucro || 0);
-    const comissaoOperador = getOperatorResultado(bruto);
-    const lucroEmpresa = bruto - comissaoOperador;
-    const contas = Number(item.qtd_contas || 0);
-    const dataTexto = item.data_registro
-      ? parseDateOnly(item.data_registro)?.toLocaleDateString("pt-BR") || "-"
-      : item.created_at
-        ? new Date(item.created_at).toLocaleDateString("pt-BR")
-        : "-";
+  recordsTableBody.innerHTML = filtered
+    .slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((record) => {
+      const gross = calculateUnifiedGross(record);
+      const commission = calculateUnifiedCommission(record);
+      const profit = calculateUnifiedProfit(record);
 
-    const acoes = `
-      <td class="py-4">
-        <div class="flex gap-2">
-          <button onclick="editar('${item.id}')" class="table-action edit-btn">Editar</button>
-          <button onclick="excluir('${item.id}')" class="table-action delete-btn">Excluir</button>
-        </div>
-      </td>
-    `;
-
-    if (isAdmin()) {
       return `
-        <tr class="border-b border-slate-900">
-          <td class="py-4 pr-3 font-semibold">${item.email ?? "-"}</td>
-          <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
-          <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-          <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
-          <td class="py-4 pr-3">${contas}</td>
-          <td class="py-4 pr-3">${dataTexto}</td>
-          ${acoes}
+        <tr>
+          <td>${record.source === "operator" ? "Operador" : "Ciclo"}</td>
+          <td>${record.operator || "—"}</td>
+          <td>${formatCurrency(gross)}</td>
+          <td>${formatCurrency(commission)}</td>
+          <td class="${profit >= 0 ? "profit-positive" : "profit-negative"}">${formatCurrency(profit)}</td>
+          <td>${record.accounts || 0}</td>
+          <td>${formatDate(record.createdAt)}</td>
         </tr>
       `;
+    })
+    .join("");
+}
+
+function buildRankingData(baseRecords) {
+  const grouped = {};
+
+  baseRecords.forEach((record) => {
+    const operator = record.operator || "Sem nome";
+
+    if (!grouped[operator]) {
+      grouped[operator] = {
+        operator,
+        gross: 0,
+        profit: 0,
+        accounts: 0,
+      };
     }
 
-    return `
-      <tr class="border-b border-slate-900">
-        <td class="py-4 pr-3 font-semibold">${item.email ?? "-"}</td>
-        <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
-        <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-        <td class="py-4 pr-3">${contas}</td>
-        <td class="py-4 pr-3">${dataTexto}</td>
-        ${acoes}
-      </tr>
-    `;
-  }).join("");
+    grouped[operator].gross += calculateUnifiedGross(record);
+    grouped[operator].profit += calculateUnifiedProfit(record);
+    grouped[operator].accounts += Number(record.accounts || 0);
+  });
+
+  return Object.values(grouped).sort((a, b) => b.profit - a.profit);
 }
 
 function renderRanking() {
-  const rankingDiv = $("ranking");
-  const periodo = $("ranking-period")?.value || "hoje";
-  const base = getFilteredListByPeriod(state.allDados, periodo);
-  const mapa = {};
+  if (!rankingList) return;
 
-  base.forEach((item) => {
-    const email = item.email || "Sem operador";
-    mapa[email] = (mapa[email] || 0) + Number(item.qtd_contas || 0);
-  });
+  const ranking = buildRankingData(getFilteredRecords());
 
-  const lista = Object.entries(mapa)
-    .map(([email, contas]) => ({ email, contas }))
-    .sort((a, b) => b.contas - a.contas);
-
-  if (!lista.length) {
-    rankingDiv.innerHTML = `<div class="text-slate-400">Nenhum dado no ranking.</div>`;
+  if (!ranking.length) {
+    rankingList.innerHTML = `<p class="empty-side">Nenhum dado no ranking.</p>`;
     return;
   }
 
-  rankingDiv.innerHTML = lista.map((u, i) => {
-    let style = "";
-
-    if (i === 0) {
-      style = `
-        background: linear-gradient(135deg, #FFD700, #FFC107, #FFB300);
-        color: #000;
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-      `;
-    } else if (i === 1) {
-      style = `
-        background: linear-gradient(135deg, #E0E0E0, #BDBDBD, #9E9E9E);
-        color: #000;
-      `;
-    } else if (i === 2) {
-      style = `
-        background: linear-gradient(135deg, #CD7F32, #B87333, #8B5A2B);
-        color: #fff;
-      `;
-    } else {
-      style = `
-        background: #1e293b;
-        color: #fff;
-      `;
-    }
-
-    return `
-      <div style="
-        padding:12px;
-        border-radius:12px;
-        margin-bottom:8px;
-        transition:0.3s;
-        ${style}
-      ">
-        <b>#${i + 1}</b> ${u.email} — ${u.contas} contas
-      </div>
-    `;
-  }).join("");
+  rankingList.innerHTML = ranking
+    .slice(0, 5)
+    .map(
+      (item, index) => `
+        <div class="ranking-item">
+          <div class="ranking-left">
+            <strong>#${index + 1} ${item.operator}</strong>
+            <span>Bruto: ${formatCurrency(item.gross)} • Contas: ${item.accounts}</span>
+          </div>
+          <div class="ranking-profit">${formatCurrency(item.profit)} lucro</div>
+        </div>
+      `
+    )
+    .join("");
 }
 
-function renderOperatorDetail() {
-  if (!isAdmin() || !state.selectedOperator) return;
+function renderFullRanking() {
+  if (!fullRankingList) return;
 
-  const operatorData = state.allDados.filter((item) => item.email === state.selectedOperator);
-  const filtro = $("detail-filter").value;
-  const filtered = getFilteredListByPeriod(operatorData, filtro);
-  const op = state.allOperadores.find((item) => item.email === state.selectedOperator);
+  const ranking = buildRankingData(getOverviewBaseRecords());
 
-  renderDetailMetric("hoje", getFilteredListByPeriod(operatorData, "hoje"));
-  renderDetailMetric("semana", getFilteredListByPeriod(operatorData, "semana"));
-  renderDetailMetric("mes", getFilteredListByPeriod(operatorData, "mes"));
-  renderDetailMetric("total", getFilteredListByPeriod(operatorData, "todos"));
-
-  const contasHoje = sumContas(getFilteredListByPeriod(operatorData, "hoje"));
-  const contasSemana = sumContas(getFilteredListByPeriod(operatorData, "semana"));
-  const contasMes = sumContas(getFilteredListByPeriod(operatorData, "mes"));
-
-  const metaDia = Number(op?.meta_dia_contas || 0);
-  const metaSemana = Number(op?.meta_semana_contas || 0);
-  const metaMes = Number(op?.meta_mes_contas || 0);
-
-  setDetailGoalCard("day", contasHoje, metaDia);
-  setDetailGoalCard("week", contasSemana, metaSemana);
-  setDetailGoalCard("month", contasMes, metaMes);
-
-  $("meta-dia-input").value = metaDia;
-  $("meta-semana-input").value = metaSemana;
-  $("meta-mes-input").value = metaMes;
-
-  const tbody = $("detail-table");
-  if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhum ciclo encontrado.</td></tr>`;
-  } else {
-    tbody.innerHTML = filtered.map((item) => {
-      const bruto = Number(item.lucro || 0);
-      const comissaoOperador = getOperatorResultado(bruto);
-      const lucroEmpresa = bruto - comissaoOperador;
-      const contas = Number(item.qtd_contas || 0);
-      const dataTexto = item.data_registro
-        ? parseDateOnly(item.data_registro)?.toLocaleDateString("pt-BR") || "-"
-        : item.created_at
-          ? new Date(item.created_at).toLocaleDateString("pt-BR")
-          : "-";
-
-      return isAdmin()
-        ? `
-          <tr class="border-b border-slate-900">
-            <td class="py-4 pr-3 font-semibold">${item.email}</td>
-            <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
-            <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-            <td class="py-4 pr-3 ${lucroEmpresa >= 0 ? "positive" : "negative"}">${formatCurrency(lucroEmpresa)}</td>
-            <td class="py-4 pr-3">${contas}</td>
-            <td class="py-4 pr-3">${dataTexto}</td>
-          </tr>
-        `
-        : `
-          <tr class="border-b border-slate-900">
-            <td class="py-4 pr-3 font-semibold">${item.email}</td>
-            <td class="py-4 pr-3 ${bruto >= 0 ? "positive" : "negative"}">${formatCurrency(bruto)}</td>
-            <td class="py-4 pr-3 ${comissaoOperador >= 0 ? "positive" : "negative"}">${formatCurrency(comissaoOperador)}</td>
-            <td class="py-4 pr-3">${contas}</td>
-            <td class="py-4 pr-3">${dataTexto}</td>
-          </tr>
-        `;
-    }).join("");
+  if (!ranking.length) {
+    fullRankingList.innerHTML = `<p class="empty-side">Nenhum dado disponível.</p>`;
+    return;
   }
 
-  const ctx = $("detailChartCanvas").getContext("2d");
-  if (state.detailChart) state.detailChart.destroy();
-
-  const agrupado = {};
-  filtered.forEach((item) => {
-    const chave = item.data_registro || item.created_at?.slice(0, 10) || "Sem data";
-    agrupado[chave] = (agrupado[chave] || 0) + Number(item.qtd_contas || 0);
-  });
-
-  state.detailChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: Object.keys(agrupado),
-      datasets: [{
-        label: `Contas de ${state.selectedOperator}`,
-        data: Object.values(agrupado),
-        backgroundColor: "rgba(34, 197, 94, 0.72)",
-        borderRadius: 10
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#cbd5e1" } } },
-      scales: {
-        x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-        y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.08)" } }
-      }
-    }
-  });
+  fullRankingList.innerHTML = ranking
+    .map(
+      (item, index) => `
+        <div class="ranking-item">
+          <div class="ranking-left">
+            <strong>#${index + 1} ${item.operator}</strong>
+            <span>Bruto: ${formatCurrency(item.gross)} • Contas: ${item.accounts}</span>
+          </div>
+          <div class="ranking-profit">${formatCurrency(item.profit)} lucro</div>
+        </div>
+      `
+    )
+    .join("");
 }
 
-function renderDetailMetric(prefix, list) {
-  const total = sumLucro(list);
-  $(`detail-${prefix}`).textContent = formatCurrency(total);
-  $(`detail-${prefix}-count`).textContent = `${list.length} registro${list.length === 1 ? "" : "s"}`;
-}
+function renderChart() {
+  const canvas = document.getElementById("performanceChart");
+  if (!canvas || typeof Chart === "undefined") return;
 
-function exportarExcel() {
-  if (!isAdmin()) return;
-
-  const rows = state.dados.map((item) => {
-    const bruto = Number(item.lucro || 0);
-    const comissaoOperador = getOperatorResultado(bruto);
-    const lucroEmpresa = bruto - comissaoOperador;
-    const dataTexto = item.data_registro
-      ? parseDateOnly(item.data_registro)?.toLocaleDateString("pt-BR") || ""
-      : item.created_at
-        ? new Date(item.created_at).toLocaleDateString("pt-BR")
-        : "";
-
-    return {
-      Operador: item.email || "",
-      ResultadoBruto: bruto,
-      Comissao: comissaoOperador,
-      Lucro: lucroEmpresa,
-      Contas: Number(item.qtd_contas || 0),
-      Data: dataTexto
-    };
-  });
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
-  XLSX.writeFile(wb, "stark_cpa_relatorio.xlsx");
-  showToast("Excel exportado com sucesso.");
-}
-
-function renderGrafico() {
-  const ctx = $("graficoCanvas").getContext("2d");
-  if (state.chart) state.chart.destroy();
-
+  const filtered = getFilteredRecords();
   const grouped = {};
-  state.dados.forEach((item) => {
-    const email = item.email || "Sem operador";
-    grouped[email] = (grouped[email] || 0) + Number(item.lucro || 0);
+
+  filtered.forEach((record) => {
+    const operator = record.operator || "Sem nome";
+    if (!grouped[operator]) grouped[operator] = 0;
+    grouped[operator] += calculateUnifiedGross(record);
   });
 
-  state.chart = new Chart(ctx, {
+  if (performanceChart) {
+    performanceChart.destroy();
+    performanceChart = null;
+  }
+
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || "#8ea0bf";
+  const legendColor = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#e5eefc";
+
+  performanceChart = new Chart(canvas.getContext("2d"), {
     type: "bar",
     data: {
       labels: Object.keys(grouped),
-      datasets: [{
-        label: "Resultado bruto",
-        data: Object.values(grouped),
-        backgroundColor: "rgba(37, 99, 235, 0.72)",
-        borderRadius: 10
-      }]
+      datasets: [
+        {
+          label: "Resultado bruto",
+          data: Object.values(grouped),
+          borderRadius: 10,
+          backgroundColor: "rgba(59,130,246,0.75)",
+          borderColor: "rgba(59,130,246,1)",
+          borderWidth: 1,
+        },
+      ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#cbd5e1" } } },
+      plugins: {
+        legend: {
+          labels: {
+            color: legendColor,
+          },
+        },
+      },
       scales: {
-        x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-        y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148, 163, 184, 0.08)" } }
-      }
-    }
+        x: {
+          ticks: { color: textColor },
+          grid: { color: "rgba(255,255,255,0.04)" },
+        },
+        y: {
+          ticks: {
+            color: textColor,
+            callback: (value) => formatCurrency(value),
+          },
+          grid: { color: "rgba(255,255,255,0.06)" },
+        },
+      },
+    },
   });
 }
 
-window.addEventListener("load", () => {
-  ["entrada", "ajuste", "saida"].forEach((id) => $(id)?.addEventListener("input", updatePreview));
-  restoreSession();
+/* =========================
+   OPERATORS
+========================= */
+
+function normalizeMonth(value) {
+  return (value || "").toString().trim().toLowerCase();
+}
+
+function getFilteredOperators() {
+  const search = operatorSearchInput.value.trim().toLowerCase();
+  const month = normalizeMonth(operatorMonthFilter.value);
+
+  return operators.filter((operator) => {
+    const matchesSearch = (operator.name || "").toLowerCase().includes(search);
+    const matchesMonth = month === "todos" ? true : normalizeMonth(operator.month) === month;
+    return matchesSearch && matchesMonth;
+  });
+}
+
+function renderOperatorsSummary() {
+  const filtered = getFilteredOperators();
+
+  if (operatorsTotalCount) operatorsTotalCount.textContent = filtered.length;
+  if (operatorsGrossTotal) {
+    operatorsGrossTotal.textContent = formatCurrency(
+      filtered.reduce((sum, item) => sum + Number(item.gross || 0), 0)
+    );
+  }
+  if (operatorsNetTotal) {
+    operatorsNetTotal.textContent = formatCurrency(
+      filtered.reduce((sum, item) => sum + Number(item.net || 0), 0)
+    );
+  }
+  if (operatorsCommissionTotal) {
+    operatorsCommissionTotal.textContent = formatCurrency(
+      filtered.reduce((sum, item) => sum + Number(item.operatorValue || 0), 0)
+    );
+  }
+}
+
+function renderOperatorsTable() {
+  if (!operatorsTableBody) return;
+
+  const filtered = getFilteredOperators();
+
+  if (!filtered.length) {
+    operatorsTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="empty-state">Nenhum operador encontrado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  operatorsTableBody.innerHTML = filtered
+    .slice()
+    .reverse()
+    .map(
+      (item) => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.month}</td>
+          <td>${formatCurrency(item.gross)}</td>
+          <td class="profit-positive">${formatCurrency(item.net)}</td>
+          <td>${formatCurrency(item.operatorValue)}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-delete" onclick="deleteOperator('${item.id}')">Remover</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function renderOperatorsPage() {
+  renderOperatorsSummary();
+  renderOperatorsTable();
+}
+
+/* =========================
+   CYCLES
+========================= */
+
+function getFilteredCycles() {
+  return records.filter((record) => checkPeriod(record.createdAt, cyclesPeriodFilter.value));
+}
+
+function renderCyclesPage() {
+  if (!cyclesTableBody) return;
+
+  const filtered = getFilteredCycles();
+
+  const totalGross = filtered.reduce(
+    (sum, record) => sum + Number(record.withdraw || 0) + Number(record.bau || 0),
+    0
+  );
+
+  const totalCommission = filtered.reduce(
+    (sum, record) => sum + Number(record.commission || 0),
+    0
+  );
+
+  const totalProfit = filtered.reduce(
+    (sum, record) => sum + calculateCycleNetProfit(record),
+    0
+  );
+
+  if (cyclesCount) cyclesCount.textContent = filtered.length;
+  if (cyclesGross) cyclesGross.textContent = formatCurrency(totalGross);
+  if (cyclesCommission) cyclesCommission.textContent = formatCurrency(totalCommission);
+  if (cyclesProfit) {
+    cyclesProfit.textContent = formatCurrency(totalProfit);
+    cyclesProfit.style.color = totalProfit >= 0 ? "#22c55e" : "#ef4444";
+  }
+
+  if (!filtered.length) {
+    cyclesTableBody.innerHTML = `
+      <tr>
+        <td colspan="9" class="empty-state">Nenhum ciclo encontrado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  cyclesTableBody.innerHTML = filtered
+    .slice()
+    .reverse()
+    .map((record) => {
+      const profit = calculateCycleNetProfit(record);
+
+      return `
+        <tr>
+          <td>${record.operator || "—"}</td>
+          <td>${formatCurrency(record.deposit || 0)}</td>
+          <td>${formatCurrency(record.bau || 0)}</td>
+          <td>${formatCurrency(record.withdraw || 0)}</td>
+          <td>${formatCurrency(record.commission || 0)}</td>
+          <td>${record.accounts || 0}</td>
+          <td class="${profit >= 0 ? "profit-positive" : "profit-negative"}">${formatCurrency(profit)}</td>
+          <td>${formatDate(record.createdAt)}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-edit" onclick="editCycle('${record.id}')">Editar</button>
+              <button class="btn btn-delete" onclick="deleteCycle('${record.id}')">Remover</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function updateCycleBauAutomatically() {
+  const accounts = Number(cycleAccounts?.value || 0);
+  const totalBau = accounts * 10;
+  if (cycleBau) cycleBau.value = totalBau > 0 ? totalBau.toFixed(2) : "";
+  updateCycleCommissionAutomatically();
+}
+
+function updateCycleCommissionAutomatically() {
+  const deposit = Number(cycleDeposit?.value || 0);
+  const bau = Number(cycleBau?.value || 0);
+  const withdraw = Number(cycleWithdraw?.value || 0);
+  const profit = deposit + bau - withdraw;
+  const commissionAmount = profit > 0 ? profit * 0.3 : 0;
+  if (cycleCommission) cycleCommission.value = commissionAmount > 0 ? commissionAmount.toFixed(2) : "";
+}
+
+function resetCycleForm() {
+  if (!cycleForm) return;
+  cycleForm.reset();
+  cycleId.value = "";
+  cycleSubmitBtn.textContent = "Salvar ciclo";
+  cancelCycleEditBtn.classList.remove("btn-visible");
+  cancelCycleEditBtn.classList.add("btn-hidden");
+  if (cyclePicker) cyclePicker.clear();
+  updateCycleBauAutomatically();
+}
+
+function startCycleEdit(record) {
+  cycleId.value = record.id;
+  cycleOperator.value = record.operator || "";
+  cycleAccounts.value = record.accounts || 0;
+  cycleDeposit.value = record.deposit || 0;
+  cycleWithdraw.value = record.withdraw || 0;
+  cycleDate.value = toFlatpickrDateTime(record.createdAt);
+
+  updateCycleBauAutomatically();
+
+  if (cyclePicker) {
+    cyclePicker.setDate(record.createdAt, true, "d/m/Y H:i");
+  }
+
+  cycleSubmitBtn.textContent = "Atualizar ciclo";
+  cancelCycleEditBtn.classList.remove("btn-hidden");
+  cancelCycleEditBtn.classList.add("btn-visible");
+
+  showPage("cycles");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================
+   EXPENSES
+========================= */
+
+function getFilteredExpenses() {
+  const search = expenseSearchInput.value.trim().toLowerCase();
+  const period = expensesPeriodFilter.value;
+
+  return expenses.filter((expense) => {
+    const matchesSearch =
+      (expense.category || "").toLowerCase().includes(search) ||
+      (expense.description || "").toLowerCase().includes(search);
+
+    const matchesPeriod = checkPeriod(expense.date, period);
+    return matchesSearch && matchesPeriod;
+  });
+}
+
+function getTotalExpensesForPeriod(period) {
+  return expenses
+    .filter((expense) => checkPeriod(expense.date, period))
+    .reduce((sum, expense) => sum + Number(expense.value || 0), 0);
+}
+
+function renderExpensesPage() {
+  if (!expensesTableBody) return;
+
+  const filtered = getFilteredExpenses();
+  const totalExpenses = filtered.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  const averageExpenses = filtered.length ? totalExpenses / filtered.length : 0;
+
+  const categoriesMap = {};
+  filtered.forEach((item) => {
+    const category = item.category || "Sem categoria";
+    categoriesMap[category] = (categoriesMap[category] || 0) + Number(item.value || 0);
+  });
+
+  const topCategoryEntry = Object.entries(categoriesMap).sort((a, b) => b[1] - a[1])[0];
+  const topCategory = topCategoryEntry ? topCategoryEntry[0] : "—";
+
+  const operationalProfit = getOverviewBaseRecords().reduce(
+    (sum, record) => sum + calculateUnifiedProfit(record),
+    0
+  );
+  const netAfterExpenses = operationalProfit - totalExpenses;
+
+  if (expensesTotalValue) expensesTotalValue.textContent = formatCurrency(totalExpenses);
+  if (expensesCountLabel) expensesCountLabel.textContent = `${filtered.length} gasto(s)`;
+  if (expensesTopCategory) expensesTopCategory.textContent = topCategory;
+  if (expensesAverageValue) expensesAverageValue.textContent = formatCurrency(averageExpenses);
+  if (expensesNetResult) {
+    expensesNetResult.textContent = formatCurrency(netAfterExpenses);
+    expensesNetResult.style.color = netAfterExpenses >= 0 ? "#22c55e" : "#ef4444";
+  }
+
+  if (!filtered.length) {
+    expensesTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">Nenhum gasto encontrado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  expensesTableBody.innerHTML = filtered
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map(
+      (expense) => `
+        <tr>
+          <td>${expense.category || "Sem categoria"}</td>
+          <td>${expense.description || "—"}</td>
+          <td class="profit-negative">${formatCurrency(expense.value)}</td>
+          <td>${formatDateOnly(expense.date)}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-edit" onclick="editExpense('${expense.id}')">Editar</button>
+              <button class="btn btn-delete" onclick="deleteExpense('${expense.id}')">Remover</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function resetExpenseForm() {
+  if (!expenseForm) return;
+  expenseForm.reset();
+  expenseId.value = "";
+  expenseSubmitBtn.textContent = "Salvar gasto";
+  cancelExpenseEditBtn.classList.remove("btn-visible");
+  cancelExpenseEditBtn.classList.add("btn-hidden");
+  if (expensePicker) expensePicker.clear();
+}
+
+function startExpenseEdit(expense) {
+  expenseId.value = expense.id;
+  expenseCategory.value = expense.category || "";
+  expenseDescription.value = expense.description || "";
+  expenseValue.value = expense.value || "";
+  expenseDate.value = toDateInputValue(expense.date);
+  expenseSubmitBtn.textContent = "Atualizar gasto";
+  cancelExpenseEditBtn.classList.remove("btn-hidden");
+  cancelExpenseEditBtn.classList.add("btn-visible");
+
+  if (expensePicker) {
+    expensePicker.setDate(expense.date, true, "d/m/Y");
+  }
+
+  showPage("expenses");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================
+   SAVINGS
+========================= */
+
+function getFilteredSavings() {
+  const search = savingsSearchInput.value.trim().toLowerCase();
+  const type = savingsTypeFilter.value;
+
+  return savings.filter((item) => {
+    const matchesSearch = (item.description || "").toLowerCase().includes(search);
+    const matchesType = type === "todos" ? true : item.type === type;
+    return matchesSearch && matchesType;
+  });
+}
+
+function renderSavingsPage() {
+  if (!savingsTableBody) return;
+
+  const filtered = getFilteredSavings();
+
+  const totalDeposits = savings
+    .filter((item) => item.type === "deposito")
+    .reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+  const totalWithdrawals = savings
+    .filter((item) => item.type === "saque")
+    .reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+  const balance = totalDeposits - totalWithdrawals;
+
+  if (savingsBalanceValue) savingsBalanceValue.textContent = formatCurrency(balance);
+  if (savingsDepositsValue) savingsDepositsValue.textContent = formatCurrency(totalDeposits);
+  if (savingsWithdrawalsValue) savingsWithdrawalsValue.textContent = formatCurrency(totalWithdrawals);
+  if (savingsCountValue) savingsCountValue.textContent = savings.length;
+
+  if (!filtered.length) {
+    savingsTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">Nenhuma movimentação encontrada.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  savingsTableBody.innerHTML = filtered
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map(
+      (item) => `
+        <tr>
+          <td>${item.type === "deposito" ? "Depósito" : "Saque"}</td>
+          <td>${item.description || "—"}</td>
+          <td class="${item.type === "deposito" ? "profit-positive" : "profit-negative"}">${formatCurrency(item.value)}</td>
+          <td>${formatDateOnly(item.date)}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-edit" onclick="editSavings('${item.id}')">Editar</button>
+              <button class="btn btn-delete" onclick="deleteSavings('${item.id}')">Remover</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function resetSavingsForm() {
+  if (!savingsForm) return;
+  savingsForm.reset();
+  savingsId.value = "";
+  savingsSubmitBtn.textContent = "Salvar movimentação";
+  cancelSavingsEditBtn.classList.remove("btn-visible");
+  cancelSavingsEditBtn.classList.add("btn-hidden");
+  if (savingsPicker) savingsPicker.clear();
+}
+
+function startSavingsEdit(item) {
+  savingsId.value = item.id;
+  savingsType.value = item.type || "";
+  savingsValue.value = item.value || "";
+  savingsDescription.value = item.description || "";
+  savingsDate.value = toDateInputValue(item.date);
+  savingsSubmitBtn.textContent = "Atualizar movimentação";
+  cancelSavingsEditBtn.classList.remove("btn-hidden");
+  cancelSavingsEditBtn.classList.add("btn-visible");
+
+  if (savingsPicker) {
+    savingsPicker.setDate(item.date, true, "d/m/Y");
+  }
+
+  showPage("savings");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================
+   GOALS
+========================= */
+
+function populateGoalsForm() {
+  if (dailyGoalInput) dailyGoalInput.value = goals.daily ?? "";
+  if (weeklyGoalInput) weeklyGoalInput.value = goals.weekly ?? "";
+  if (monthlyGoalInput) monthlyGoalInput.value = goals.monthly ?? "";
+}
+
+function getProfitByPeriod(period) {
+  return getOverviewBaseRecords()
+    .filter((record) => checkPeriod(record.createdAt, period))
+    .reduce((sum, record) => sum + calculateUnifiedProfit(record), 0);
+}
+
+function updateGoalUI(type, current, goal, prefix = "") {
+  const valueEl = document.getElementById(`${prefix}${type}GoalValue`);
+  const progressEl = document.getElementById(`${prefix}${type}GoalProgress`);
+  const remainingEl = document.getElementById(`${prefix}${type}GoalRemaining`);
+  const barEl = document.getElementById(`${prefix}${type}GoalBar`);
+
+  if (!valueEl || !progressEl || !remainingEl || !barEl) return;
+
+  const percent = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  const remaining = Math.max(goal - current, 0);
+
+  valueEl.textContent = formatCurrency(goal);
+  progressEl.textContent =
+    goal > 0
+      ? `Lucro realizado: ${formatCurrency(current)} • ${percent.toFixed(1)}% atingido`
+      : "Defina uma meta";
+
+  remainingEl.textContent =
+    goal > 0 ? `Faltam ${formatCurrency(remaining)}` : "Nenhuma meta cadastrada";
+
+  barEl.style.width = `${percent}%`;
+}
+
+function renderOverviewGoals() {
+  const dailyProfit = getProfitByPeriod("hoje");
+  const weeklyProfit = getProfitByPeriod("semana");
+  const monthlyProfit = getProfitByPeriod("mes");
+
+  updateGoalUI("Daily", dailyProfit, Number(goals.daily || 0), "overview");
+  updateGoalUI("Weekly", weeklyProfit, Number(goals.weekly || 0), "overview");
+  updateGoalUI("Monthly", monthlyProfit, Number(goals.monthly || 0), "overview");
+}
+
+function renderGoals() {
+  const dailyProfit = getProfitByPeriod("hoje");
+  const weeklyProfit = getProfitByPeriod("semana");
+  const monthlyProfit = getProfitByPeriod("mes");
+
+  updateGoalUI("daily", dailyProfit, Number(goals.daily || 0), "");
+  updateGoalUI("weekly", weeklyProfit, Number(goals.weekly || 0), "");
+  updateGoalUI("monthly", monthlyProfit, Number(goals.monthly || 0), "");
+
+  renderOverviewGoals();
+}
+
+/* =========================
+   SETTINGS
+========================= */
+
+function applySettings() {
+  const root = document.documentElement;
+
+  root.setAttribute("data-theme", settings.theme || "dark");
+  root.setAttribute("data-palette", settings.palette || "blue");
+
+  const fontScaleMap = {
+    small: "0.92",
+    medium: "1",
+    large: "1.08",
+  };
+
+  root.style.setProperty("--font-scale", fontScaleMap[settings.fontSize] || "1");
+
+  if (themeSelect) themeSelect.value = settings.theme || "dark";
+  if (fontSizeSelect) fontSizeSelect.value = settings.fontSize || "medium";
+  if (paletteSelect) paletteSelect.value = settings.palette || "blue";
+}
+
+function resetSettings() {
+  settings = {
+    theme: "dark",
+    fontSize: "medium",
+    palette: "blue",
+  };
+  saveSettings();
+  applySettings();
+  renderChart();
+}
+
+/* =========================
+   IMPORTS
+========================= */
+
+function normalizeImportedOperator(item) {
+  return {
+    id: item.id || crypto.randomUUID(),
+    name: String(item.name || item.nome || "").trim(),
+    month: String(item.month || item.mes || "").trim(),
+    gross: parseFlexibleNumber(item.gross ?? item.bruto ?? 0),
+    net: parseFlexibleNumber(item.net ?? item.liquido ?? item["valor liquido"] ?? 0),
+    operatorValue: parseFlexibleNumber(
+      item.operatorValue ?? item.valorOperador ?? item["valor operador"] ?? item.comissao ?? 0
+    ),
+    createdAt: item.createdAt || new Date().toISOString(),
+  };
+}
+
+function normalizeImportedExpense(item) {
+  const rawDate = item.date || item.data || "";
+  const parsedDate = parseCycleDate(rawDate) || new Date();
+
+  return {
+    id: item.id || crypto.randomUUID(),
+    category: String(item.category || item.categoria || "").trim(),
+    description: String(item.description || item.descricao || "").trim(),
+    value: parseFlexibleNumber(item.value ?? item.valor ?? 0),
+    date: parsedDate.toISOString(),
+  };
+}
+
+function validateImportedOperators(list) {
+  if (!Array.isArray(list) || !list.length) {
+    showToast("Importação inválida", "Nenhum dado válido encontrado no arquivo.", "error");
+    return false;
+  }
+
+  const hasInvalidItem = list.some((item) => !item.name || !item.month);
+
+  if (hasInvalidItem) {
+    showToast("Importação inválida", "Alguns registros estão sem nome ou mês.", "error");
+    return false;
+  }
+
+  return true;
+}
+
+function validateImportedExpenses(list) {
+  if (!Array.isArray(list) || !list.length) {
+    showToast("Importação inválida", "Nenhum gasto válido encontrado no arquivo.", "error");
+    return false;
+  }
+
+  const hasInvalidItem = list.some((item) => !item.category || Number(item.value || 0) <= 0);
+
+  if (hasInvalidItem) {
+    showToast("Importação inválida", "Alguns gastos estão sem categoria ou com valor inválido.", "error");
+    return false;
+  }
+
+  return true;
+}
+
+function finishOperatorsImport(importedOperators) {
+  operators = hydrateOperators(importedOperators);
+  saveOperators();
+  renderAll();
+  showToast("Operadores importados", "Os dados foram carregados com sucesso.", "success");
+}
+
+function finishExpensesImport(importedExpenses) {
+  expenses = importedExpenses;
+  saveExpenses();
+  renderAll();
+  showToast("Gastos importados", "Os dados foram carregados com sucesso.", "success");
+}
+
+function importOperatorsFromJSON(text) {
+  try {
+    const rawData = JSON.parse(text);
+    if (!Array.isArray(rawData)) {
+      showToast("JSON inválido", "O arquivo precisa conter uma lista de operadores.", "error");
+      return;
+    }
+
+    const importedOperators = rawData.map(normalizeImportedOperator);
+    if (!validateImportedOperators(importedOperators)) return;
+
+    finishOperatorsImport(importedOperators);
+  } catch {
+    showToast("JSON inválido", "Verifique o arquivo enviado.", "error");
+  }
+}
+
+function importExpensesFromJSON(text) {
+  try {
+    const rawData = JSON.parse(text);
+    if (!Array.isArray(rawData)) {
+      showToast("JSON inválido", "O arquivo precisa conter uma lista de gastos.", "error");
+      return;
+    }
+
+    const importedExpenses = rawData.map(normalizeImportedExpense);
+    if (!validateImportedExpenses(importedExpenses)) return;
+
+    finishExpensesImport(importedExpenses);
+  } catch {
+    showToast("JSON inválido", "Verifique o arquivo enviado.", "error");
+  }
+}
+
+function importOperatorsFromTXT(text) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+
+  if (!lines.length) {
+    showToast("TXT vazio", "O arquivo não possui conteúdo.", "error");
+    return;
+  }
+
+  const importedOperators = lines.map((line, index) => {
+    const parts = line.split("|").map((part) => part.trim());
+
+    if (parts.length < 5) throw new Error(`Linha ${index + 1} inválida`);
+
+    return normalizeImportedOperator({
+      name: parts[0],
+      month: parts[1],
+      gross: parts[2],
+      net: parts[3],
+      operatorValue: parts[4],
+    });
+  });
+
+  if (!validateImportedOperators(importedOperators)) return;
+  finishOperatorsImport(importedOperators);
+}
+
+function importExpensesFromTXT(text) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+
+  if (!lines.length) {
+    showToast("TXT vazio", "O arquivo não possui conteúdo.", "error");
+    return;
+  }
+
+  const importedExpenses = lines.map((line, index) => {
+    const parts = line.split("|").map((part) => part.trim());
+
+    if (parts.length < 4) throw new Error(`Linha ${index + 1} inválida`);
+
+    return normalizeImportedExpense({
+      category: parts[0],
+      description: parts[1],
+      value: parts[2],
+      date: parts[3],
+    });
+  });
+
+  if (!validateImportedExpenses(importedExpenses)) return;
+  finishExpensesImport(importedExpenses);
+}
+
+function importOperatorsFromExcel(arrayBuffer) {
+  try {
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) {
+      showToast("Planilha inválida", "A planilha não possui abas.", "error");
+      return;
+    }
+
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    if (!rows.length) {
+      showToast("Planilha vazia", "Não há dados para importar.", "error");
+      return;
+    }
+
+    const importedOperators = rows.map(normalizeImportedOperator);
+    if (!validateImportedOperators(importedOperators)) return;
+
+    finishOperatorsImport(importedOperators);
+  } catch {
+    showToast("Erro ao importar", "Não foi possível ler a planilha Excel.", "error");
+  }
+}
+
+function importExpensesFromExcel(arrayBuffer) {
+  try {
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) {
+      showToast("Planilha inválida", "A planilha não possui abas.", "error");
+      return;
+    }
+
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    if (!rows.length) {
+      showToast("Planilha vazia", "Não há dados para importar.", "error");
+      return;
+    }
+
+    const importedExpenses = rows.map(normalizeImportedExpense);
+    if (!validateImportedExpenses(importedExpenses)) return;
+
+    finishExpensesImport(importedExpenses);
+  } catch {
+    showToast("Erro ao importar", "Não foi possível ler a planilha Excel.", "error");
+  }
+}
+
+function importOperatorsFromFile(file) {
+  if (!file) return;
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith(".json")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importOperatorsFromJSON(event.target.result);
+      } finally {
+        importOperatorsInput.value = "";
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    return;
+  }
+
+  if (fileName.endsWith(".txt")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importOperatorsFromTXT(event.target.result);
+      } catch {
+        showToast("TXT inválido", "Use o formato: Nome|Mês|Bruto|Líquido|ValorOperador", "error");
+      } finally {
+        importOperatorsInput.value = "";
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    return;
+  }
+
+  if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importOperatorsFromExcel(event.target.result);
+      } finally {
+        importOperatorsInput.value = "";
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  showToast("Formato não suportado", "Use JSON, TXT, XLSX ou XLS.", "error");
+  importOperatorsInput.value = "";
+}
+
+function importExpensesFromFile(file) {
+  if (!file) return;
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith(".json")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importExpensesFromJSON(event.target.result);
+      } finally {
+        importExpensesInput.value = "";
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    return;
+  }
+
+  if (fileName.endsWith(".txt")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importExpensesFromTXT(event.target.result);
+      } catch {
+        showToast("TXT inválido", "Use o formato: Categoria|Descrição|Valor|Data", "error");
+      } finally {
+        importExpensesInput.value = "";
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    return;
+  }
+
+  if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        importExpensesFromExcel(event.target.result);
+      } finally {
+        importExpensesInput.value = "";
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  showToast("Formato não suportado", "Use JSON, TXT, XLSX ou XLS.", "error");
+  importExpensesInput.value = "";
+}
+
+/* =========================
+   GLOBAL RENDER
+========================= */
+
+function renderAll() {
+  renderSummary();
+  renderTable();
+  renderRanking();
+  renderChart();
+  renderOperatorsPage();
+  renderCyclesPage();
+  renderExpensesPage();
+  renderSavingsPage();
+  renderFullRanking();
+  renderGoals();
+  renderOverviewGoals();
+}
+
+function showPage(pageName) {
+  pages.forEach((page) => page.classList.remove("active"));
+  menuItems.forEach((item) => item.classList.remove("active"));
+
+  const targetPage = document.getElementById(`page-${pageName}`);
+  const targetMenu = document.querySelector(`.menu-item[data-page="${pageName}"]`);
+
+  if (targetPage) targetPage.classList.add("active");
+  if (targetMenu) targetMenu.classList.add("active");
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+function editExpense(id) {
+  const expense = expenses.find((item) => item.id === id);
+  if (!expense) return;
+  startExpenseEdit(expense);
+}
+
+function deleteExpense(id) {
+  if (!askConfirm("Tem certeza que deseja remover este gasto?")) return;
+  expenses = expenses.filter((item) => item.id !== id);
+  saveExpenses();
+  resetExpenseForm();
+  renderAll();
+  showToast("Gasto removido", "O registro foi excluído com sucesso.", "success");
+}
+
+function editSavings(id) {
+  const item = savings.find((entry) => entry.id === id);
+  if (!item) return;
+  startSavingsEdit(item);
+}
+
+function deleteSavings(id) {
+  if (!askConfirm("Tem certeza que deseja remover esta movimentação?")) return;
+  savings = savings.filter((item) => item.id !== id);
+  saveSavings();
+  resetSavingsForm();
+  renderAll();
+  showToast("Movimentação removida", "O registro foi excluído com sucesso.", "success");
+}
+
+function editCycle(id) {
+  const record = records.find((item) => item.id === id);
+  if (!record) return;
+  startCycleEdit(record);
+}
+
+function deleteCycle(id) {
+  if (!askConfirm("Tem certeza que deseja remover este ciclo?")) return;
+  records = records.filter((item) => item.id !== id);
+  saveRecords();
+  resetCycleForm();
+  renderAll();
+  showToast("Ciclo removido", "O registro foi excluído com sucesso.", "success");
+}
+
+function deleteOperator(id) {
+  if (!askConfirm("Remover operador?")) return;
+  operators = operators.filter((op) => op.id !== id);
+  saveOperators();
+  renderAll();
+  showToast("Operador removido", "O registro foi excluído com sucesso.", "success");
+}
+
+/* =========================
+   EVENTS
+========================= */
+
+menuItems.forEach((item) => {
+  item.addEventListener("click", () => showPage(item.dataset.page));
 });
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    renderSummary();
+    renderTable();
+    renderRanking();
+    renderChart();
+  });
+}
+
+if (periodFilter) {
+  periodFilter.addEventListener("change", () => {
+    renderSummary();
+    renderTable();
+    renderRanking();
+    renderChart();
+  });
+}
+
+if (operatorSearchInput) operatorSearchInput.addEventListener("input", renderOperatorsPage);
+if (operatorMonthFilter) operatorMonthFilter.addEventListener("change", renderOperatorsPage);
+if (cyclesPeriodFilter) cyclesPeriodFilter.addEventListener("change", renderCyclesPage);
+if (expenseSearchInput) expenseSearchInput.addEventListener("input", renderExpensesPage);
+if (expensesPeriodFilter) expensesPeriodFilter.addEventListener("change", renderExpensesPage);
+if (savingsSearchInput) savingsSearchInput.addEventListener("input", renderSavingsPage);
+if (savingsTypeFilter) savingsTypeFilter.addEventListener("change", renderSavingsPage);
+
+if (importOperatorsBtn) {
+  importOperatorsBtn.addEventListener("click", () => importOperatorsInput.click());
+}
+if (importOperatorsInput) {
+  importOperatorsInput.addEventListener("change", (event) => {
+    importOperatorsFromFile(event.target.files[0]);
+  });
+}
+
+if (importExpensesBtn) {
+  importExpensesBtn.addEventListener("click", () => importExpensesInput.click());
+}
+if (importExpensesInput) {
+  importExpensesInput.addEventListener("change", (event) => {
+    importExpensesFromFile(event.target.files[0]);
+  });
+}
+
+if (expenseForm) {
+  expenseForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const parsedDate = expensePicker?.selectedDates?.[0] || parseCycleDate(expenseDate.value);
+
+    const entry = {
+      id: expenseId.value || crypto.randomUUID(),
+      category: expenseCategory.value.trim(),
+      description: expenseDescription.value.trim(),
+      value: Number(expenseValue.value || 0),
+      date: parsedDate ? parsedDate.toISOString() : "",
+    };
+
+    if (!entry.category || entry.value <= 0 || !entry.date) {
+      showToast("Dados inválidos", "Preencha categoria, valor e data corretamente.", "error");
+      return;
+    }
+
+    const existingIndex = expenses.findIndex((item) => item.id === entry.id);
+    if (existingIndex >= 0) expenses[existingIndex] = entry;
+    else expenses.push(entry);
+
+    saveExpenses();
+    resetExpenseForm();
+    renderAll();
+    showToast(
+      existingIndex >= 0 ? "Gasto atualizado" : "Gasto salvo",
+      "As informações foram registradas com sucesso.",
+      "success"
+    );
+  });
+}
+
+if (cancelExpenseEditBtn) {
+  cancelExpenseEditBtn.addEventListener("click", resetExpenseForm);
+}
+
+if (savingsForm) {
+  savingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const parsedDate = savingsPicker?.selectedDates?.[0] || parseCycleDate(savingsDate.value);
+
+    const entry = {
+      id: savingsId.value || crypto.randomUUID(),
+      type: savingsType.value,
+      value: Number(savingsValue.value || 0),
+      description: savingsDescription.value.trim(),
+      date: parsedDate ? parsedDate.toISOString() : "",
+    };
+
+    if (!entry.type || entry.value <= 0 || !entry.date) {
+      showToast("Dados inválidos", "Preencha tipo, valor e data corretamente.", "error");
+      return;
+    }
+
+    const existingIndex = savings.findIndex((item) => item.id === entry.id);
+    if (existingIndex >= 0) savings[existingIndex] = entry;
+    else savings.push(entry);
+
+    saveSavings();
+    resetSavingsForm();
+    renderAll();
+    showToast(
+      existingIndex >= 0 ? "Movimentação atualizada" : "Movimentação salva",
+      "As informações foram registradas com sucesso.",
+      "success"
+    );
+  });
+}
+
+if (cancelSavingsEditBtn) {
+  cancelSavingsEditBtn.addEventListener("click", resetSavingsForm);
+}
+
+if (cycleForm) {
+  cycleForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const parsedDate = cyclePicker?.selectedDates?.[0] || parseCycleDate(cycleDate.value);
+    const deposit = Number(cycleDeposit.value || 0);
+    const accounts = Number(cycleAccounts.value || 0);
+    const bau = accounts * 10;
+    const withdraw = Number(cycleWithdraw.value || 0);
+    const grossProfit = deposit + bau - withdraw;
+    const commission = grossProfit > 0 ? grossProfit * 0.3 : 0;
+
+    const entry = {
+      id: cycleId.value || crypto.randomUUID(),
+      operator: cycleOperator.value.trim(),
+      accounts,
+      deposit,
+      bau,
+      withdraw,
+      commission,
+      createdAt: parsedDate ? parsedDate.toISOString() : "",
+    };
+
+    if (!entry.operator || !entry.createdAt) {
+      showToast("Dados inválidos", "Preencha corretamente operador e data do ciclo.", "error");
+      return;
+    }
+
+    const existingIndex = records.findIndex((item) => item.id === entry.id);
+    if (existingIndex >= 0) records[existingIndex] = entry;
+    else records.push(entry);
+
+    saveRecords();
+    resetCycleForm();
+    renderAll();
+    showToast(
+      existingIndex >= 0 ? "Ciclo atualizado" : "Ciclo salvo",
+      "As informações foram registradas com sucesso.",
+      "success"
+    );
+  });
+}
+
+if (cancelCycleEditBtn) {
+  cancelCycleEditBtn.addEventListener("click", resetCycleForm);
+}
+if (cycleAccounts) cycleAccounts.addEventListener("input", updateCycleBauAutomatically);
+if (cycleDeposit) cycleDeposit.addEventListener("input", updateCycleCommissionAutomatically);
+if (cycleWithdraw) cycleWithdraw.addEventListener("input", updateCycleCommissionAutomatically);
+
+if (goalsForm) {
+  goalsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    goals = {
+      daily: parseFlexibleNumber(dailyGoalInput.value),
+      weekly: parseFlexibleNumber(weeklyGoalInput.value),
+      monthly: parseFlexibleNumber(monthlyGoalInput.value),
+    };
+
+    saveGoals();
+    populateGoalsForm();
+    renderGoals();
+    renderOverviewGoals();
+    showToast("Metas salvas", "As metas foram atualizadas com sucesso.", "success");
+  });
+}
+
+if (operatorForm) {
+  operatorForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const newOperator = {
+      id: crypto.randomUUID(),
+      name: operatorName.value.trim(),
+      month: operatorMonth.value,
+      gross: Number(operatorGross.value || 0),
+      net: Number(operatorNet.value || 0),
+      operatorValue: Number(operatorValue.value || 0),
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!newOperator.name || !newOperator.month) {
+      showToast("Dados inválidos", "Preencha todos os campos obrigatórios.", "error");
+      return;
+    }
+
+    operators.push(newOperator);
+    saveOperators();
+    operatorForm.reset();
+    renderAll();
+    showToast("Operador salvo", "O novo operador foi cadastrado com sucesso.", "success");
+  });
+}
+
+if (settingsForm) {
+  settingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    settings = {
+      theme: themeSelect.value,
+      fontSize: fontSizeSelect.value,
+      palette: paletteSelect.value,
+    };
+
+    saveSettings();
+    applySettings();
+    renderChart();
+    showToast("Configurações salvas", "As preferências foram atualizadas.", "success");
+  });
+}
+
+if (themeSelect) {
+  themeSelect.addEventListener("change", () => {
+    settings.theme = themeSelect.value;
+    applySettings();
+    renderChart();
+  });
+}
+
+if (fontSizeSelect) {
+  fontSizeSelect.addEventListener("change", () => {
+    settings.fontSize = fontSizeSelect.value;
+    applySettings();
+  });
+}
+
+if (paletteSelect) {
+  paletteSelect.addEventListener("change", () => {
+    settings.palette = paletteSelect.value;
+    applySettings();
+    renderChart();
+  });
+}
+
+if (resetSettingsBtn) {
+  resetSettingsBtn.addEventListener("click", () => {
+    resetSettings();
+    showToast("Configurações restauradas", "O padrão do dashboard foi aplicado.", "info");
+  });
+}
+
+/* =========================
+   GLOBAL FUNCTIONS
+========================= */
+
+window.editExpense = editExpense;
+window.deleteExpense = deleteExpense;
+window.editSavings = editSavings;
+window.deleteSavings = deleteSavings;
+window.deleteOperator = deleteOperator;
+window.editCycle = editCycle;
+window.deleteCycle = deleteCycle;
+
+/* =========================
+   INIT
+========================= */
+
+applySettings();
+resetExpenseForm();
+resetSavingsForm();
+resetCycleForm();
+populateGoalsForm();
+renderAll();
+showPage("overview");
+
+if (window.flatpickr) {
+  flatpickr.localize(flatpickr.l10ns.pt);
+
+  expensePicker = flatpickr("#expenseDate", {
+    dateFormat: "d/m/Y",
+    allowInput: true,
+  });
+
+  cyclePicker = flatpickr("#cycleDate", {
+    enableTime: true,
+    dateFormat: "d/m/Y H:i",
+    time_24hr: true,
+    allowInput: true,
+  });
+
+  savingsPicker = flatpickr("#savingsDate", {
+    dateFormat: "d/m/Y",
+    allowInput: true,
+  });
+}
