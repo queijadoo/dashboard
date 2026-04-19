@@ -1,378 +1,920 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stark CPA</title>
+  <title>Stark CPA - Dashboard Financeiro</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css" />
   <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100">
-  <div id="toast-container" class="toast-container"></div>
-
-  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md p-8">
-      <div class="flex items-center justify-center mb-6">
-        <div class="brand-badge large">S</div>
-      </div>
-
-      <h1 class="text-3xl font-black text-center tracking-tight mb-2">Stark CPA</h1>
-      <p class="text-slate-400 text-center mb-8">Painel profissional de gestão</p>
-
-      <div class="space-y-4">
-        <input id="email" type="email" placeholder="Email" class="app-input" />
-        <input id="senha" type="password" placeholder="Senha" class="app-input" />
-        <button type="button" onclick="login()" class="primary-btn w-full">Entrar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="app-screen" class="hidden min-h-screen">
+<body>
+  <div class="app">
     <aside class="sidebar">
       <div>
-        <div class="flex items-center gap-3 mb-10">
-          <div class="brand-badge">S</div>
+        <div class="brand">
+          <div class="brand-logo">S</div>
           <div>
-            <h2 class="font-black text-lg tracking-tight">Stark CPA</h2>
-            <p id="sidebar-subtitle" class="text-xs text-slate-400">Dashboard</p>
+            <h2>Stark CPA</h2>
+            <p>Dashboard Financeiro</p>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <button id="nav-overview" class="sidebar-link active-link" onclick="showPage('overview')">Visão Geral</button>
-          <button id="nav-operators" class="sidebar-link hidden" onclick="showPage('operators')">Operadores</button>
-          <button id="nav-goals" class="sidebar-link hidden" onclick="showPage('goals')">Metas</button>
-          <button id="nav-operator-detail" class="sidebar-link hidden" onclick="showPage('operator-detail')">Detalhe do Operador</button>
-        </div>
+        <nav class="menu">
+          <button class="menu-item active" data-page="overview">Visão Geral</button>
+          <button class="menu-item" data-page="operators">Operadores</button>
+          <button class="menu-item" data-page="cycles">Ciclos</button>
+          <button class="menu-item" data-page="expenses">Gastos</button>
+          <button class="menu-item" data-page="savings">Poupança</button>
+          <button class="menu-item" data-page="goals">Metas</button>
+          <button class="menu-item" data-page="ranking">Ranking</button>
+          <button class="menu-item" data-page="settings">Configurações</button>
+        </nav>
       </div>
 
-      <div class="space-y-3">
-        <div class="user-box">
-          <p class="text-xs text-slate-400">Logado como</p>
-          <p id="usuario-logado" class="font-bold text-sm break-all">-</p>
-          <p id="usuario-tipo" class="text-xs text-blue-400 mt-1">-</p>
-        </div>
-        <button onclick="logout()" class="danger-btn w-full">Sair</button>
+      <div class="profile-box">
+        <span class="profile-label">Logado como</span>
+        <strong>admin@email.com</strong>
+        <span class="profile-role">Administrador</span>
       </div>
     </aside>
 
     <main class="main-content">
-      <section id="page-overview">
-        <header id="admin-header" class="mb-8 hidden">
-          <h1 class="text-3xl font-black tracking-tight">Painel Administrativo</h1>
-          <p class="text-slate-400 mt-1">Acompanhe equipe, registros e desempenho geral.</p>
+      <!-- VISÃO GERAL -->
+      <section id="page-overview" class="page active">
+        <header class="topbar">
+          <div>
+            <h1>Painel Administrativo</h1>
+            <p>Acompanhe os principais indicadores financeiros da empresa.</p>
+          </div>
+
+          <div class="topbar-actions">
+            <input type="text" id="searchInput" placeholder="Buscar operador..." />
+            <select id="periodFilter">
+              <option value="todos">Todos</option>
+              <option value="hoje">Hoje</option>
+              <option value="semana">Semana</option>
+              <option value="mes">Mês</option>
+            </select>
+          </div>
         </header>
 
-        <header id="operator-header" class="mb-8 hidden">
-          <h1 class="text-3xl font-black tracking-tight">Meu Painel</h1>
-          <p class="text-slate-400 mt-1">Acompanhe seus registros, contas e metas.</p>
-        </header>
+        <section class="cards-grid cards-grid-4">
+          <article class="card stat-card">
+            <span class="card-label">Faturamento Bruto</span>
+            <h3 id="grossValue">R$ 0,00</h3>
+            <small id="grossCount">0 registros</small>
+          </article>
 
-        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          <div class="metric-card"><p class="metric-label">Hoje</p><h3 id="metric-hoje" class="metric-value">R$ 0,00</h3><p id="metric-hoje-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Semana</p><h3 id="metric-semana" class="metric-value">R$ 0,00</h3><p id="metric-semana-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Mês</p><h3 id="metric-mes" class="metric-value">R$ 0,00</h3><p id="metric-mes-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Total</p><h3 id="metric-total" class="metric-value">R$ 0,00</h3><p id="metric-total-count" class="metric-sub">0 registros</p></div>
+          <article class="card stat-card">
+            <span class="card-label">Comissões</span>
+            <h3 id="commissionValue">R$ 0,00</h3>
+            <small>Valores pagos à equipe</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Gastos</span>
+            <h3 id="expensesOverviewValue">R$ 0,00</h3>
+            <small>Despesas do período</small>
+          </article>
+
+          <article class="card stat-card highlight-green">
+            <span class="card-label">Lucro Líquido</span>
+            <h3 id="profitValue">R$ 0,00</h3>
+            <small>Após comissões e gastos</small>
+          </article>
         </section>
 
-        <section id="operator-goals" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 hidden">
-          <div class="metric-card">
-            <p class="metric-label">Meta de Contas Hoje</p>
-            <h3 id="goal-hoje" class="metric-value">0 / 0</h3>
-            <p id="goal-hoje-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="goal-hoje-bar" class="progress-fill"></div></div>
-          </div>
-          <div class="metric-card">
-            <p class="metric-label">Meta de Contas Semana</p>
-            <h3 id="goal-semana" class="metric-value">0 / 0</h3>
-            <p id="goal-semana-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="goal-semana-bar" class="progress-fill"></div></div>
-          </div>
-          <div class="metric-card">
-            <p class="metric-label">Meta de Contas Mês</p>
-            <h3 id="goal-mes" class="metric-value">0 / 0</h3>
-            <p id="goal-mes-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="goal-mes-bar" class="progress-fill"></div></div>
-          </div>
-        </section>
-
-        <section class="glass-card p-5 mb-8">
-          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-            <div>
-              <h2 id="control-title" class="text-xl font-black tracking-tight">Controles</h2>
-              <p id="control-subtitle" class="text-slate-400 text-sm">Gerencie filtros e visualização.</p>
-            </div>
-
-            <div class="flex flex-wrap gap-3">
-              <input
-                id="busca-registros"
-                type="text"
-                placeholder="Buscar operador nos registros"
-                class="app-input min-w-[240px] hidden"
-                oninput="applyCurrentFilter()"
-              />
-              <select id="filtroData" class="app-input min-w-[140px]" onchange="applyCurrentFilter()">
-                <option value="hoje">Hoje</option>
-                <option value="semana">Semana</option>
-                <option value="mes">Mês</option>
-                <option value="todos">Todos</option>
-              </select>
-              <button id="btn-export-excel" onclick="exportarExcel()" class="secondary-btn hidden">Exportar Excel</button>
-              <button id="btn-open-operator-modal" onclick="openCreateOperatorModal()" class="success-btn hidden">Criar Operador</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6 mb-8">
-          <div class="glass-card p-6 2xl:col-span-2">
-            <div class="mb-5">
-              <h2 id="form-title" class="text-xl font-black tracking-tight">Novo registro</h2>
-              <p id="form-subtitle" class="text-slate-400 text-sm">Lance valores de depósito, saque, BAU e contas.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input id="entrada" type="number" placeholder="Depósito" class="app-input no-spinner" />
-              <input id="ajuste" type="number" placeholder="BAU" class="app-input no-spinner" />
-              <input id="saida" type="number" placeholder="Saque" class="app-input no-spinner" />
-              <input id="qtd-contas" type="number" placeholder="Qtd. contas" class="app-input no-spinner" />
-            </div>
-
-            <div class="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div class="result-preview">
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Resultado estimado</p>
-                <h3 id="resultado-previo" class="text-3xl font-black mt-2">R$ 0,00</h3>
+        <section class="content-grid">
+          <div class="left-column">
+            <section class="card table-card">
+              <div class="section-header">
+                <div>
+                  <h2>Registros gerais</h2>
+                  <p>Lançamentos consolidados de operadores e ciclos.</p>
+                </div>
               </div>
-              <button onclick="salvar()" class="primary-btn px-8">Salvar Registro</button>
-            </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Origem</th>
+                      <th>Operador</th>
+                      <th>Bruto</th>
+                      <th>Comissão</th>
+                      <th>Lucro</th>
+                      <th>Contas</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recordsTableBody">
+                    <tr>
+                      <td colspan="7" class="empty-state">Nenhum registro encontrado.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
 
-          <div class="glass-card p-6">
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <h2 id="ranking-title" class="text-xl font-black tracking-tight">Ranking global</h2>
-              <select id="ranking-period" class="app-input max-w-[120px]" onchange="renderRanking()">
-                <option value="hoje">Hoje</option>
-                <option value="semana">Semana</option>
-                <option value="mes">Mês</option>
-                <option value="todos">Total</option>
-              </select>
-            </div>
-            <div id="ranking" class="space-y-3"></div>
+          <div class="right-column">
+            <section class="card">
+              <div class="section-header">
+                <div>
+                  <h2>Ranking global</h2>
+                  <p>Operadores com melhor resultado consolidado.</p>
+                </div>
+              </div>
+              <div id="rankingList" class="ranking-list">
+                <p class="empty-side">Nenhum dado no ranking.</p>
+              </div>
+            </section>
+
+            <section class="card chart-card">
+              <div class="section-header">
+                <div>
+                  <h2>Desempenho da equipe</h2>
+                  <p>Resultado bruto por operador.</p>
+                </div>
+              </div>
+              <canvas id="performanceChart"></canvas>
+            </section>
           </div>
         </section>
+      </section>
 
-        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6">
-          <div class="glass-card p-6 2xl:col-span-2 overflow-x-auto">
-            <div class="mb-5">
-              <h2 id="table-title" class="text-xl font-black tracking-tight">Registros</h2>
-              <p id="table-subtitle" class="text-slate-400 text-sm">Lista de movimentações registradas.</p>
+      <!-- OPERADORES -->
+      <section id="page-operators" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Operadores</h1>
+            <p>Gestão da equipe</p>
+          </div>
+
+          <div class="topbar-actions">
+            <input type="text" id="operatorSearchInput" placeholder="Buscar operador..." />
+            <select id="operatorMonthFilter">
+              <option value="todos">Todos</option>
+              <option value="janeiro">Janeiro</option>
+              <option value="fevereiro">Fevereiro</option>
+              <option value="marco">Março</option>
+              <option value="abril">Abril</option>
+              <option value="maio">Maio</option>
+              <option value="junho">Junho</option>
+              <option value="julho">Julho</option>
+              <option value="agosto">Agosto</option>
+              <option value="setembro">Setembro</option>
+              <option value="outubro">Outubro</option>
+              <option value="novembro">Novembro</option>
+              <option value="dezembro">Dezembro</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="operator-summary-grid">
+          <article class="card operator-summary-card">
+            <div class="summary-icon">👥</div>
+            <div>
+              <span class="card-label">Total de Operadores</span>
+              <h3 id="operatorsTotalCount">0</h3>
+            </div>
+          </article>
+
+          <article class="card operator-summary-card">
+            <div class="summary-icon">💰</div>
+            <div>
+              <span class="card-label">Bruto Total</span>
+              <h3 id="operatorsGrossTotal">R$ 0,00</h3>
+            </div>
+          </article>
+
+          <article class="card operator-summary-card">
+            <div class="summary-icon">📈</div>
+            <div>
+              <span class="card-label">Valor Líquido</span>
+              <h3 id="operatorsNetTotal">R$ 0,00</h3>
+            </div>
+          </article>
+
+          <article class="card operator-summary-card">
+            <div class="summary-icon">🧾</div>
+            <div>
+              <span class="card-label">Valor Operadores</span>
+              <h3 id="operatorsCommissionTotal">R$ 0,00</h3>
+            </div>
+          </article>
+        </section>
+
+        <section class="card form-card">
+          <div class="section-header">
+            <div>
+              <h2>Adicionar Operador</h2>
+              <p>Cadastro manual de funcionários</p>
+            </div>
+          </div>
+
+          <form id="operatorForm">
+            <div class="form-grid">
+              <div class="field">
+                <label for="operatorName">Nome</label>
+                <input type="text" id="operatorName" required />
+              </div>
+
+              <div class="field">
+                <label for="operatorMonth">Mês</label>
+                <select id="operatorMonth" required>
+                  <option value="">Selecione</option>
+                  <option>Janeiro</option>
+                  <option>Fevereiro</option>
+                  <option>Março</option>
+                  <option>Abril</option>
+                  <option>Maio</option>
+                  <option>Junho</option>
+                  <option>Julho</option>
+                  <option>Agosto</option>
+                  <option>Setembro</option>
+                  <option>Outubro</option>
+                  <option>Novembro</option>
+                  <option>Dezembro</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="operatorGross">Valor Bruto</label>
+                <input type="number" id="operatorGross" step="0.01" required />
+              </div>
+
+              <div class="field">
+                <label for="operatorNet">Valor Líquido</label>
+                <input type="number" id="operatorNet" step="0.01" required />
+              </div>
+
+              <div class="field">
+                <label for="operatorValue">Valor Operador</label>
+                <input type="number" id="operatorValue" step="0.01" required />
+              </div>
             </div>
 
-            <table class="w-full min-w-[980px]">
-              <thead id="table-head-main"></thead>
-              <tbody id="tabela"></tbody>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Adicionar Operador</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card operators-panel">
+          <div class="operators-panel-header">
+            <div>
+              <h2>Lista de Operadores</h2>
+              <p>Visualização consolidada da equipe.</p>
+            </div>
+
+            <div class="controls-buttons">
+              <button class="btn btn-secondary" id="importOperatorsBtn">Importar</button>
+              <input
+                type="file"
+                id="importOperatorsInput"
+                accept=".json,.txt,.xlsx,.xls,application/json,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                hidden
+              />
+            </div>
+          </div>
+
+          <div class="import-help">
+            Formatos aceitos: <strong>Excel</strong> (.xlsx, .xls), <strong>TXT</strong> (.txt) e <strong>JSON</strong> (.json)
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Mês</th>
+                  <th>Valor Bruto</th>
+                  <th>Valor Líquido</th>
+                  <th>Valor Operador</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="operatorsTableBody">
+                <tr>
+                  <td colspan="6" class="empty-state">Nenhum operador encontrado.</td>
+                </tr>
+              </tbody>
             </table>
           </div>
+        </section>
+      </section>
 
-          <div class="glass-card p-6">
-            <h2 id="chart-title" class="text-xl font-black tracking-tight mb-4">Desempenho</h2>
-            <div class="chart-wrap">
-              <canvas id="graficoCanvas"></canvas>
+      <!-- CICLOS -->
+      <section id="page-cycles" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Ciclos</h1>
+            <p>Histórico consolidado por período</p>
+          </div>
+
+          <div class="topbar-actions">
+            <select id="cyclesPeriodFilter">
+              <option value="todos">Todos</option>
+              <option value="hoje">Hoje</option>
+              <option value="semana">Semana</option>
+              <option value="mes">Mês</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="cards-grid cards-grid-4">
+          <article class="card stat-card">
+            <span class="card-label">Ciclos Encontrados</span>
+            <h3 id="cyclesCount">0</h3>
+            <small>Quantidade total</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Bruto Total</span>
+            <h3 id="cyclesGross">R$ 0,00</h3>
+            <small>Somatório do período</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Comissão</span>
+            <h3 id="cyclesCommission">R$ 0,00</h3>
+            <small>Valor distribuído</small>
+          </article>
+
+          <article class="card stat-card highlight-green">
+            <span class="card-label">Lucro</span>
+            <h3 id="cyclesProfit">R$ 0,00</h3>
+            <small>Resultado consolidado</small>
+          </article>
+        </section>
+
+        <section class="cycles-layout">
+          <section class="card form-card">
+            <div class="section-header">
+              <div>
+                <h2>Adicionar ciclo</h2>
+                <p>Cadastre manualmente um novo ciclo.</p>
+              </div>
             </div>
+
+            <form id="cycleForm">
+              <input type="hidden" id="cycleId" />
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="cycleOperator">Operador</label>
+                  <input type="text" id="cycleOperator" required />
+                </div>
+
+                <div class="field">
+                  <label for="cycleAccounts">Contas</label>
+                  <input type="number" id="cycleAccounts" min="0" step="1" required />
+                </div>
+
+                <div class="field">
+                  <label for="cycleBau">BAÚ</label>
+                  <input type="number" id="cycleBau" step="0.01" readonly />
+                </div>
+
+                <div class="field">
+                  <label for="cycleDeposit">Depósito</label>
+                  <input type="number" id="cycleDeposit" step="0.01" required />
+                </div>
+
+                <div class="field">
+                  <label for="cycleWithdraw">Saque</label>
+                  <input type="number" id="cycleWithdraw" step="0.01" required />
+                </div>
+
+                <div class="field">
+                  <label for="cycleCommission">Comissão</label>
+                  <input type="number" id="cycleCommission" step="0.01" disabled />
+                </div>
+
+                <div class="field field-span-2">
+                  <label for="cycleDate">Data e Hora</label>
+                  <input type="text" id="cycleDate" placeholder="Selecione a data e hora" required />
+                </div>
+              </div>
+
+              <div class="form-actions form-actions-between">
+                <button type="button" class="btn btn-danger btn-hidden" id="cancelCycleEditBtn">Cancelar edição</button>
+                <button type="submit" class="btn btn-primary" id="cycleSubmitBtn">Salvar ciclo</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card operators-panel">
+            <div class="operators-panel-header">
+              <div>
+                <h2>Histórico de Ciclos</h2>
+                <p>Todos os lançamentos feitos pelos funcionários.</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Operador</th>
+                    <th>Depósito</th>
+                    <th>BAÚ</th>
+                    <th>Saque</th>
+                    <th>Comissão</th>
+                    <th>Contas</th>
+                    <th>Lucro</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="cyclesTableBody">
+                  <tr>
+                    <td colspan="9" class="empty-state">Nenhum ciclo encontrado.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <!-- GASTOS -->
+      <section id="page-expenses" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Gastos</h1>
+            <p>Controle gerencial de despesas da empresa</p>
+          </div>
+
+          <div class="topbar-actions">
+            <input type="text" id="expenseSearchInput" placeholder="Buscar categoria ou descrição..." />
+            <select id="expensesPeriodFilter">
+              <option value="todos">Todos</option>
+              <option value="hoje">Hoje</option>
+              <option value="semana">Semana</option>
+              <option value="mes">Mês</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="cards-grid cards-grid-4">
+          <article class="card stat-card">
+            <span class="card-label">Total de Gastos</span>
+            <h3 id="expensesTotalValue">R$ 0,00</h3>
+            <small id="expensesCountLabel">0 gasto(s)</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Maior Categoria</span>
+            <h3 id="expensesTopCategory">—</h3>
+            <small>Categoria com maior peso</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Média por Gasto</span>
+            <h3 id="expensesAverageValue">R$ 0,00</h3>
+            <small>Média do período</small>
+          </article>
+
+          <article class="card stat-card highlight-green">
+            <span class="card-label">Resultado Após Gastos</span>
+            <h3 id="expensesNetResult">R$ 0,00</h3>
+            <small>Lucro operacional líquido</small>
+          </article>
+        </section>
+
+        <section class="expenses-layout">
+          <section class="card form-card">
+            <div class="section-header">
+              <div>
+                <h2>Lançar gasto</h2>
+                <p>Cadastre despesas manualmente.</p>
+              </div>
+            </div>
+
+            <form id="expenseForm">
+              <input type="hidden" id="expenseId" />
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="expenseCategory">Categoria</label>
+                  <input type="text" id="expenseCategory" placeholder="Ex: Marketing" required />
+                </div>
+
+                <div class="field field-span-2">
+                  <label for="expenseDescription">Descrição</label>
+                  <input type="text" id="expenseDescription" placeholder="Descreva o gasto (opcional)" />
+                </div>
+
+                <div class="field">
+                  <label for="expenseValue">Valor</label>
+                  <input type="number" step="0.01" id="expenseValue" placeholder="0,00" required />
+                </div>
+
+                <div class="field">
+                  <label for="expenseDate">Data</label>
+                  <input type="text" id="expenseDate" placeholder="Selecione a data" required />
+                </div>
+              </div>
+
+              <div class="form-actions form-actions-between">
+                <button type="button" class="btn btn-danger btn-hidden" id="cancelExpenseEditBtn">Cancelar edição</button>
+                <button type="submit" class="btn btn-primary" id="expenseSubmitBtn">Salvar gasto</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card operators-panel">
+            <div class="operators-panel-header">
+              <div>
+                <h2>Histórico de Gastos</h2>
+                <p>Despesas lançadas para acompanhamento administrativo.</p>
+              </div>
+
+              <div class="controls-buttons">
+                <button class="btn btn-secondary" id="importExpensesBtn">Importar</button>
+                <input
+                  type="file"
+                  id="importExpensesInput"
+                  accept=".json,.txt,.xlsx,.xls,application/json,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  hidden
+                />
+              </div>
+            </div>
+
+            <div class="import-help">
+              Formatos aceitos: <strong>Excel</strong>, <strong>TXT</strong> e <strong>JSON</strong>. Campos esperados: categoria, descrição, valor e data.
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="expensesTableBody">
+                  <tr>
+                    <td colspan="5" class="empty-state">Nenhum gasto encontrado.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <!-- POUPANÇA -->
+      <section id="page-savings" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Poupança</h1>
+            <p>Controle de valores guardados e movimentações da reserva.</p>
+          </div>
+
+          <div class="topbar-actions">
+            <input type="text" id="savingsSearchInput" placeholder="Buscar descrição..." />
+            <select id="savingsTypeFilter">
+              <option value="todos">Todos</option>
+              <option value="deposito">Depósito</option>
+              <option value="saque">Saque</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="cards-grid cards-grid-4">
+          <article class="card stat-card">
+            <span class="card-label">Saldo Atual</span>
+            <h3 id="savingsBalanceValue">R$ 0,00</h3>
+            <small>Valor total guardado</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Total Depositado</span>
+            <h3 id="savingsDepositsValue">R$ 0,00</h3>
+            <small>Entradas acumuladas</small>
+          </article>
+
+          <article class="card stat-card">
+            <span class="card-label">Total Sacado</span>
+            <h3 id="savingsWithdrawalsValue">R$ 0,00</h3>
+            <small>Saídas acumuladas</small>
+          </article>
+
+          <article class="card stat-card highlight-green">
+            <span class="card-label">Movimentações</span>
+            <h3 id="savingsCountValue">0</h3>
+            <small>Registros totais</small>
+          </article>
+        </section>
+
+        <section class="expenses-layout">
+          <section class="card form-card">
+            <div class="section-header">
+              <div>
+                <h2>Nova movimentação</h2>
+                <p>Cadastre depósitos e saques da poupança.</p>
+              </div>
+            </div>
+
+            <form id="savingsForm">
+              <input type="hidden" id="savingsId" />
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="savingsType">Tipo</label>
+                  <select id="savingsType" required>
+                    <option value="">Selecione</option>
+                    <option value="deposito">Depósito</option>
+                    <option value="saque">Saque</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="savingsValue">Valor</label>
+                  <input type="number" step="0.01" id="savingsValue" required />
+                </div>
+
+                <div class="field field-span-2">
+                  <label for="savingsDescription">Descrição</label>
+                  <input type="text" id="savingsDescription" placeholder="Ex: Reserva mensal" />
+                </div>
+
+                <div class="field field-span-2">
+                  <label for="savingsDate">Data</label>
+                  <input type="text" id="savingsDate" placeholder="Selecione a data" required />
+                </div>
+              </div>
+
+              <div class="form-actions form-actions-between">
+                <button type="button" class="btn btn-danger btn-hidden" id="cancelSavingsEditBtn">Cancelar edição</button>
+                <button type="submit" class="btn btn-primary" id="savingsSubmitBtn">Salvar movimentação</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card operators-panel">
+            <div class="operators-panel-header">
+              <div>
+                <h2>Histórico da Poupança</h2>
+                <p>Registro de entradas e saídas da reserva.</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="savingsTableBody">
+                  <tr>
+                    <td colspan="5" class="empty-state">Nenhuma movimentação encontrada.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <!-- METAS -->
+      <section id="page-goals" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Metas</h1>
+            <p>Acompanhamento estratégico por período</p>
+          </div>
+        </header>
+
+        <section class="goals-layout">
+          <section class="card form-card">
+            <div class="section-header">
+              <div>
+                <h2>Definir metas</h2>
+                <p>Cadastre manualmente as metas diária, semanal e mensal com base no lucro.</p>
+              </div>
+            </div>
+
+            <form id="goalsForm">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="dailyGoalInput">Meta diária</label>
+                  <input type="number" step="0.01" id="dailyGoalInput" placeholder="0,00" required />
+                </div>
+
+                <div class="field">
+                  <label for="weeklyGoalInput">Meta semanal</label>
+                  <input type="number" step="0.01" id="weeklyGoalInput" placeholder="0,00" required />
+                </div>
+
+                <div class="field">
+                  <label for="monthlyGoalInput">Meta mensal</label>
+                  <input type="number" step="0.01" id="monthlyGoalInput" placeholder="0,00" required />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Salvar metas</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="cards-grid cards-grid-3">
+            <article class="card stat-card">
+              <span class="card-label">Meta Diária</span>
+              <h3 id="dailyGoalValue">R$ 0,00</h3>
+              <small id="dailyGoalProgress">0% atingido</small>
+              <div class="goal-bar">
+                <div id="dailyGoalBar"></div>
+              </div>
+              <small id="dailyGoalRemaining">Faltam R$ 0,00</small>
+            </article>
+
+            <article class="card stat-card">
+              <span class="card-label">Meta Semanal</span>
+              <h3 id="weeklyGoalValue">R$ 0,00</h3>
+              <small id="weeklyGoalProgress">0% atingido</small>
+              <div class="goal-bar">
+                <div id="weeklyGoalBar"></div>
+              </div>
+              <small id="weeklyGoalRemaining">Faltam R$ 0,00</small>
+            </article>
+
+            <article class="card stat-card">
+              <span class="card-label">Meta Mensal</span>
+              <h3 id="monthlyGoalValue">R$ 0,00</h3>
+              <small id="monthlyGoalProgress">0% atingido</small>
+              <div class="goal-bar">
+                <div id="monthlyGoalBar"></div>
+              </div>
+              <small id="monthlyGoalRemaining">Faltam R$ 0,00</small>
+            </article>
+          </section>
+        </section>
+      </section>
+
+      <!-- RANKING -->
+      <section id="page-ranking" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Ranking</h1>
+            <p>Desempenho consolidado da equipe</p>
+          </div>
+        </header>
+
+        <section class="card operators-panel">
+          <div class="operators-panel-header">
+            <div>
+              <h2>Ranking Completo</h2>
+              <p>Classificação dos operadores por lucro.</p>
+            </div>
+          </div>
+
+          <div id="fullRankingList" class="ranking-list">
+            <p class="empty-side">Nenhum dado disponível.</p>
           </div>
         </section>
       </section>
 
-      <section id="page-operators" class="hidden">
-        <header class="mb-8">
-          <h1 class="text-3xl font-black tracking-tight">Operadores</h1>
-          <p class="text-slate-400 mt-1">Gerencie os acessos da equipe.</p>
+      <!-- CONFIGURAÇÕES -->
+      <section id="page-settings" class="page">
+        <header class="topbar">
+          <div>
+            <h1>Configurações</h1>
+            <p>Personalize aparência e estilo do dashboard.</p>
+          </div>
         </header>
 
-        <div class="glass-card p-6 overflow-x-auto">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
-            <div>
-              <h2 class="text-xl font-black tracking-tight">Lista de operadores</h2>
-              <p class="text-slate-400 text-sm">Clique no nome para abrir os detalhes.</p>
+        <section class="settings-layout">
+          <section class="card form-card">
+            <div class="section-header">
+              <div>
+                <h2>Aparência do site</h2>
+                <p>Altere tema, fonte e paleta de cores.</p>
+              </div>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-              <input
-                id="busca-operadores"
-                type="text"
-                placeholder="Buscar operador"
-                class="app-input min-w-[240px]"
-                oninput="filtrarOperadoresRender()"
-              />
-              <button onclick="openCreateOperatorModal()" class="success-btn">Novo Operador</button>
-            </div>
-          </div>
+            <form id="settingsForm">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="themeSelect">Tema</label>
+                  <select id="themeSelect">
+                    <option value="dark">Escuro</option>
+                    <option value="light">Claro</option>
+                  </select>
+                </div>
 
-          <table class="w-full min-w-[700px]">
-            <thead>
-              <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-                <th class="text-left py-3 pr-3">Email</th>
-                <th class="text-left py-3 pr-3">Criado em</th>
-                <th class="text-left py-3 pr-3">Tipo</th>
-                <th class="text-left py-3">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="operators-table"></tbody>
-          </table>
-        </div>
-      </section>
+                <div class="field">
+                  <label for="fontSizeSelect">Tamanho da fonte</label>
+                  <select id="fontSizeSelect">
+                    <option value="small">Pequena</option>
+                    <option value="medium">Média</option>
+                    <option value="large">Grande</option>
+                  </select>
+                </div>
 
-      <section id="page-goals" class="hidden">
-        <header class="mb-8">
-          <h1 class="text-3xl font-black tracking-tight">Metas dos Operadores</h1>
-          <p class="text-slate-400 mt-1">Defina metas diárias, semanais e mensais por contas.</p>
-        </header>
+                <div class="field field-span-2">
+                  <label for="paletteSelect">Paleta de cores</label>
+                  <select id="paletteSelect">
+                    <option value="blue">Azul Neon</option>
+                    <option value="red">Vermelho Stark</option>
+                    <option value="green">Verde Tech</option>
+                    <option value="purple">Roxo Future</option>
+                    <option value="gold">Dourado Premium</option>
+                  </select>
+                </div>
+              </div>
 
-        <div class="glass-card p-6 overflow-x-auto">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
-            <div>
-              <h2 class="text-xl font-black tracking-tight">Gestão de metas</h2>
-              <p class="text-slate-400 text-sm">Edite e salve as metas sem sair da aba.</p>
-            </div>
+              <div class="form-actions form-actions-between">
+                <button type="button" class="btn btn-secondary" id="resetSettingsBtn">Restaurar padrão</button>
+                <button type="submit" class="btn btn-primary">Salvar configurações</button>
+              </div>
+            </form>
+          </section>
 
-            <div class="flex flex-wrap gap-3">
-              <input
-                id="busca-metas"
-                type="text"
-                placeholder="Buscar operador nas metas"
-                class="app-input min-w-[240px]"
-                oninput="renderGoalsTable()"
-              />
-            </div>
-          </div>
-
-          <table class="w-full min-w-[920px]">
-            <thead>
-              <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs tracking-[0.2em]">
-                <th class="text-left py-3 pr-3">Operador</th>
-                <th class="text-left py-3 pr-3">Meta Dia</th>
-                <th class="text-left py-3 pr-3">Meta Semana</th>
-                <th class="text-left py-3 pr-3">Meta Mês</th>
-                <th class="text-left py-3">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="goals-table"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="page-operator-detail" class="hidden">
-        <header class="mb-8">
-          <button onclick="closeOperatorDetail()" class="ghost-btn mb-4">Voltar</button>
-          <h1 class="text-3xl font-black tracking-tight">Detalhe do Operador</h1>
-          <p id="detail-subtitle" class="text-slate-400 mt-1">Visualização individual do operador.</p>
-        </header>
-
-        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          <div class="metric-card"><p class="metric-label">Hoje</p><h3 id="detail-hoje" class="metric-value">R$ 0,00</h3><p id="detail-hoje-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Semana</p><h3 id="detail-semana" class="metric-value">R$ 0,00</h3><p id="detail-semana-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Mês</p><h3 id="detail-mes" class="metric-value">R$ 0,00</h3><p id="detail-mes-count" class="metric-sub">0 registros</p></div>
-          <div class="metric-card"><p class="metric-label">Total</p><h3 id="detail-total" class="metric-value">R$ 0,00</h3><p id="detail-total-count" class="metric-sub">0 registros</p></div>
-        </section>
-
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div class="metric-card">
-            <p class="metric-label">Meta Dia / Contas</p>
-            <h3 id="detail-goal-day" class="metric-value">0 / 0</h3>
-            <p id="detail-goal-day-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="detail-goal-day-bar" class="progress-fill"></div></div>
-          </div>
-          <div class="metric-card">
-            <p class="metric-label">Meta Semana / Contas</p>
-            <h3 id="detail-goal-week" class="metric-value">0 / 0</h3>
-            <p id="detail-goal-week-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="detail-goal-week-bar" class="progress-fill"></div></div>
-          </div>
-          <div class="metric-card">
-            <p class="metric-label">Meta Mês / Contas</p>
-            <h3 id="detail-goal-month" class="metric-value">0 / 0</h3>
-            <p id="detail-goal-month-sub" class="metric-sub">0%</p>
-            <div class="progress-track"><div id="detail-goal-month-bar" class="progress-fill"></div></div>
-          </div>
-        </section>
-
-        <section class="glass-card p-5 mb-8">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input id="meta-dia-input" type="number" placeholder="Meta dia" class="app-input no-spinner" />
-            <input id="meta-semana-input" type="number" placeholder="Meta semana" class="app-input no-spinner" />
-            <input id="meta-mes-input" type="number" placeholder="Meta mês" class="app-input no-spinner" />
-            <button onclick="saveOperatorGoals()" class="success-btn">Salvar Metas</button>
-          </div>
-        </section>
-
-        <section class="glass-card p-5 mb-8">
-          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-black tracking-tight">Filtros do operador</h2>
-              <p class="text-slate-400 text-sm">Consulte os ciclos por período.</p>
+          <section class="card settings-preview-card">
+            <div class="section-header">
+              <div>
+                <h2>Pré-visualização</h2>
+                <p>Veja como o tema ficará no dashboard.</p>
+              </div>
             </div>
 
-            <div class="flex flex-wrap gap-3">
-              <select id="detail-filter" class="app-input min-w-[140px]" onchange="renderOperatorDetail()">
-                <option value="todos">Todos</option>
-                <option value="hoje">Hoje</option>
-                <option value="semana">Semana</option>
-                <option value="mes">Mês</option>
-              </select>
-            </div>
-          </div>
-        </section>
+            <div class="settings-preview-box">
+              <div class="settings-preview-header">
+                <span class="preview-badge">Preview</span>
+                <strong>Stark CPA</strong>
+              </div>
 
-        <section class="grid grid-cols-1 2xl:grid-cols-3 gap-6">
-          <div class="glass-card p-6 2xl:col-span-2 overflow-x-auto">
-            <div class="mb-5">
-              <h2 class="text-xl font-black tracking-tight">Ciclos do operador</h2>
-              <p class="text-slate-400 text-sm">Registros individuais filtrados.</p>
+              <div class="settings-preview-cards">
+                <div class="preview-mini-card">
+                  <span>Bruto</span>
+                  <strong>R$ 12.400</strong>a
+                </div>
+                <div class="preview-mini-card">
+                  <span>Lucro</span>
+                  <strong>R$ 4.820</strong>
+                </div>
+                <div class="preview-mini-card">
+                  <span>Meta</span>
+                  <strong>78%</strong>
+                </div>
+              </div>
             </div>
-
-            <table class="w-full min-w-[920px]">
-              <thead id="table-head-detail"></thead>
-              <tbody id="detail-table"></tbody>
-            </table>
-          </div>
-
-          <div class="glass-card p-6">
-            <h2 class="text-xl font-black tracking-tight mb-4">Gráfico do operador</h2>
-            <div class="chart-wrap">
-              <canvas id="detailChartCanvas"></canvas>
-            </div>
-          </div>
+          </section>
         </section>
       </section>
     </main>
   </div>
 
-  <div id="operator-modal" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <div class="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h3 class="text-2xl font-black tracking-tight">Criar operador</h3>
-          <p class="text-slate-400 text-sm mt-1">Cadastre um novo acesso para a equipe.</p>
-        </div>
-        <button onclick="closeCreateOperatorModal()" class="modal-close">×</button>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
+
+  <div id="confirmModal" class="confirm-modal hidden">
+    <div class="confirm-modal-backdrop"></div>
+
+    <div class="confirm-modal-content">
+      <div class="confirm-modal-icon">!</div>
+
+      <div class="confirm-modal-text">
+        <h3 id="confirmModalTitle">Confirmar ação</h3>
+        <p id="confirmModalMessage">Tem certeza que deseja continuar?</p>
       </div>
 
-      <div class="space-y-4">
-        <input id="novo-operador-email" type="email" placeholder="Email do operador" class="app-input" />
-        <input id="novo-operador-senha" type="password" placeholder="Senha do operador" class="app-input" />
-      </div>
-
-      <div class="flex flex-col-reverse sm:flex-row gap-3 justify-end mt-6">
-        <button onclick="closeCreateOperatorModal()" class="ghost-btn">Cancelar</button>
-        <button onclick="createOperatorFromModal()" class="success-btn">Criar operador</button>
+      <div class="confirm-modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmModalCancel">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmModalConfirm">Remover</button>
       </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
